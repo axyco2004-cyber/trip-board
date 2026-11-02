@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f6f3eb">
-  <title>Trip Together | A little local knowledge goes a long way</title>
+  <title>CA2026 | A little local knowledge goes a long way</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
@@ -47,19 +47,68 @@
     .eyebrow { color: var(--green); text-transform: uppercase; letter-spacing: 1.5px; font-size: 10px; font-weight: 700; }
     h1 { margin: 7px 0 5px; font: 600 38px/1.12 var(--serif); letter-spacing: 0; }
     .trip-sub { color: var(--muted); margin: 0; }
-    .trip-meta { display: flex; align-items: center; gap: 11px; color: var(--muted); padding-bottom: 3px; white-space: nowrap; }
-    .avatars { display: flex; padding-left: 5px; }
+    .trip-meta { display: flex; align-items: center; gap: 11px; color: var(--muted); padding-bottom: 3px; }
+    .crew-summary { min-width: 0; }
+    .avatars { display: flex; padding-left: 5px; margin-bottom: 5px; }
     .avatar { margin-left: -5px; border: 2px solid var(--paper); width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: var(--ink); font-size: 10px; font-weight: 700; background: var(--yellow); }
     .avatar:nth-child(2) { background: var(--pink); }
     .avatar:nth-child(3) { background: #b7c8b6; }
-    .cover { min-height: 268px; position: relative; overflow: hidden; border-radius: 7px; color: white; background: #405d4c url("https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=1800&q=85") center 48% / cover; display: flex; align-items: end; }
-    .cover:after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(20,35,29,.76), rgba(20,35,29,.06) 85%), linear-gradient(0deg, rgba(20,35,29,.28), transparent 50%); }
-    .cover-copy { position: relative; z-index: 1; padding: 30px 34px; max-width: 580px; }
-    .cover-copy p { margin: 0 0 8px; text-transform: uppercase; letter-spacing: 1.6px; font-size: 10px; font-weight: 700; }
-    .cover-copy h2 { font: 600 31px/1.16 var(--serif); margin: 0 0 7px; }
-    .cover-copy span { color: rgba(255,255,255,.82); font-size: 13px; }
-    .cover-pin { position: absolute; z-index: 1; right: 24px; bottom: 23px; width: 42px; height: 42px; display: grid; place-items: center; background: var(--yellow); color: var(--ink); border-radius: 50%; text-decoration: none; }
-    .cover-pin svg { width: 19px; }
+    .avatar-more { background: var(--green); color: white; }
+    .contributor-label { display: block; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+    .crew-edit-button { border: 0; padding: 5px 0; background: none; color: var(--green); font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .crew-edit-button:hover { text-decoration: underline; }
+    .destination-picker { margin: 0 0 28px; }
+    .destination-picker h2 { font: 600 23px var(--serif); margin: 0 0 5px; }
+    .destination-intro { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 0 0 14px; }
+    .destination-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .destination-item { min-width: 0; }
+    .destination-card { width: 100%; min-height: 148px; position: relative; display: flex; overflow: hidden; align-items: end; border: 0; border-radius: 6px; padding: 0; background: #405d4c; color: white; text-align: left; }
+    .destination-card[aria-pressed="true"] { outline: 3px solid var(--green); outline-offset: 3px; }
+    .destination-card::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(20,35,29,.76), transparent 72%); }
+    .destination-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .25s ease; }
+    .destination-card:hover img, .destination-card:focus-visible img { transform: scale(1.04); }
+    .destination-card:focus-visible { outline: 3px solid var(--orange); outline-offset: 3px; }
+    .destination-name { position: relative; z-index: 1; padding: 14px 15px; font: 600 20px/1.2 var(--serif); text-shadow: 0 1px 3px rgba(0,0,0,.4); }
+    .photo-credit { margin: 5px 0 0; color: var(--muted); font-size: 9px; line-height: 1.4; }
+    .photo-credit a { color: inherit; }
+    .destination-guide { margin: 0 0 28px; padding: 24px; border: 1px solid var(--line); border-radius: 6px; background: var(--white); }
+    .destination-guide-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+    .destination-guide-header h2 { margin: 5px 0 0; font: 600 26px/1.2 var(--serif); }
+    .guide-categories { display: grid; gap: 10px; }
+    .guide-category { border: 1px solid var(--line); border-radius: 5px; background: var(--white); }
+    .guide-category summary { padding: 13px 15px; cursor: pointer; color: var(--green); font: 600 18px var(--serif); }
+    .guide-category ul { margin: 0; padding: 0 18px 15px 37px; color: var(--muted); line-height: 1.7; }
+    .guide-category li + li { margin-top: 5px; }
+    .guide-empty { color: var(--muted); }
+    .hotel-parts { display: grid; gap: 14px; }
+    .hotel-part { padding: 15px; border: 1px solid var(--line); border-radius: 6px; background: rgba(255,254,250,.55); }
+    .hotel-part > summary { cursor: pointer; color: var(--green); font: 600 20px var(--serif); }
+    .hotel-part-content { display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, .8fr); gap: 18px; margin-top: 14px; align-items: start; }
+    .hotel-map-link { display: inline-flex; margin: 0 0 12px; color: var(--green); font-size: 11px; font-weight: 700; cursor: pointer; }
+    .guide-editor { padding: 15px; border-radius: 5px; background: #f6f3eb; }
+    .guide-editor summary { cursor: pointer; color: var(--green); font-weight: 700; }
+    .guide-editor form { margin-top: 16px; }
+    .guide-editor .field:last-of-type { margin-bottom: 17px; }
+    .guide-editor .field textarea { min-height: 82px; }
+    .guide-save-row { display: flex; align-items: center; gap: 12px; }
+    .guide-save-note { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.4; }
+    .session-board { margin: 0 0 28px; padding: 24px; border: 1px solid var(--line); border-radius: 6px; background: var(--white); }
+    .session-board h2 { margin: 0 0 5px; font: 600 23px var(--serif); }
+    .session-intro { margin: 0 0 17px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .session-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; padding-bottom: 19px; border-bottom: 1px solid var(--line); }
+    .session-form .field { margin-bottom: 12px; }
+    .session-form .field-message { grid-column: 1 / -1; }
+    .session-form .field-message textarea { min-height: 90px; }
+    .session-form .session-submit { grid-column: 1 / -1; justify-self: start; }
+    .session-posts { display: grid; gap: 12px; margin-top: 17px; }
+    .session-empty { margin: 0; padding: 18px 10px; color: var(--muted); text-align: center; }
+    .session-post { padding: 13px 15px; border-radius: 5px; background: #f6f3eb; }
+    .session-post-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 7px; margin-bottom: 6px; }
+    .session-post-delete { margin-left: auto; padding: 2px 4px; font-size: 10px; }
+    .session-post-author { font-weight: 700; }
+    .session-post-type { padding: 2px 6px; border-radius: 3px; background: #e7eee6; color: var(--green); font-size: 9px; font-weight: 700; text-transform: uppercase; }
+    .session-post-context, .session-post-time { color: var(--muted); font-size: 10px; }
+    .session-post-text { margin: 0; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
     .stats { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0 0 27px; border: 1px solid var(--line); border-top: 0; background: rgba(255,254,250,.55); }
     .stat { display: flex; gap: 11px; align-items: center; padding: 15px 20px; border-right: 1px solid var(--line); }
     .stat:last-child { border-right: 0; }
@@ -127,7 +176,8 @@
       .shell { padding: 25px 20px 50px; }
       .content { grid-template-columns: minmax(0,1fr) 225px; gap: 24px; }
       .side { padding-left: 18px; }
-      .cover { min-height: 235px; }
+      .destination-grid { gap: 12px; }
+      .hotel-part-content { grid-template-columns: 1fr; gap: 14px; }
     }
     @media (max-width: 620px) {
       .topbar { height: 60px; padding: 0 16px; }
@@ -137,11 +187,20 @@
       .shell { padding: 23px 16px 42px; }
       .trip-head { display: block; margin-bottom: 17px; }
       h1 { font-size: 32px; }
-      .trip-meta { margin-top: 13px; }
-      .cover { min-height: 220px; background-position: 55% center; }
-      .cover-copy { padding: 22px; }
-      .cover-copy h2 { font-size: 26px; }
-      .cover-pin { width: 38px; height: 38px; right: 14px; bottom: 14px; }
+      .trip-meta { margin-top: 13px; align-items: center; }
+      .contributor-label { max-width: 190px; }
+      .destination-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .destination-card { min-height: 126px; }
+      .destination-name { padding: 11px; font-size: 18px; }
+      .photo-credit { font-size: 9px; }
+      .destination-guide { padding: 17px; }
+      .session-form { grid-template-columns: 1fr; }
+      .session-form .field-message, .session-form .session-submit { grid-column: auto; }
+      .destination-guide-header { align-items: flex-start; }
+      .destination-guide-header h2 { font-size: 23px; }
+      .hotel-part { padding: 12px; }
+      .session-board { padding: 17px; }
+      .guide-save-row { align-items: flex-start; flex-direction: column; }
       .stats { margin-bottom: 22px; }
       .stat { padding: 12px 9px; gap: 7px; flex-direction: column; align-items: flex-start; }
       .stat-icon { width: 28px; height: 28px; }
@@ -167,7 +226,7 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><div class="brand-mark"><span>↗</span></div> Trip Together</div>
+    <div class="brand"><div class="brand-mark"><span>↗</span></div> CA2026</div>
     <div class="top-actions">
       <button class="button button-quiet" id="exportButton" title="Download a backup of this trip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v3h14v-3"/></svg>Backup</button>
       <button class="button button-green" id="shareButton"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/><path d="M8 12h8m-4-4v8"/></svg>Share trip</button>
@@ -175,12 +234,49 @@
   </header>
   <main class="shell">
     <section class="trip-head">
-      <div><div class="eyebrow">The group trip board</div><h1 id="tripTitle">Lisbon, together</h1><p class="trip-sub" id="tripSubtitle">A few good ideas from everyone. More welcome.</p></div>
-      <div class="trip-meta"><div class="avatars" aria-label="Trip contributors"><span class="avatar">M</span><span class="avatar">J</span><span class="avatar">A</span></div><span id="contributorLabel">Your travel crew</span></div>
+      <div><div class="eyebrow">The group trip board</div><h1 id="tripTitle">Crew layover</h1><p class="trip-sub" id="tripSubtitle">A few good ideas from everyone. More welcome.</p></div>
+      <div class="trip-meta">
+        <div class="crew-summary">
+          <div class="avatars" id="crewAvatars" aria-label="Travel crew"></div>
+          <span class="contributor-label" id="contributorLabel">3 crew members</span>
+        </div>
+        <button class="crew-edit-button" id="editCrewButton" type="button">Edit crew</button>
+      </div>
     </section>
-    <section class="cover" aria-label="Lisbon travel photo">
-      <div class="cover-copy"><p id="coverEyebrow">Portugal · City break</p><h2 id="coverTitle">A little Lisbon<br>goes a long way.</h2><span id="coverNote">Save the places you don't want to forget.</span></div>
-      <a class="cover-pin" id="cityMapLink" href="https://www.google.com/maps/search/?api=1&query=Lisbon%2C+Portugal" target="_blank" rel="noopener" aria-label="Open Lisbon in Google Maps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></a>
+    <section class="destination-picker" aria-labelledby="destinationHeading">
+      <h2 id="destinationHeading">Layover destinations</h2>
+      <p class="destination-intro">Choose a destination, then open either hotel section to see and edit its separate Eat, Visit, Shopping and Tips lists. Changes are saved in this browser.</p>
+      <div class="destination-grid" id="destinationGrid" role="group" aria-label="Choose a destination"></div>
+    </section>
+    <section class="destination-guide" aria-labelledby="guideTitle">
+      <header class="destination-guide-header">
+        <div><div class="eyebrow">Destination guide</div><h2 id="guideTitle">Gothenburg</h2></div>
+        <a class="button button-outline" id="destinationMapLink" href="https://www.google.com/maps/search/?api=1&amp;query=Gothenburg%2C+Sweden" target="_blank" rel="noopener noreferrer">Open Google Maps</a>
+      </header>
+      <div class="hotel-parts" id="destinationHotels"></div>
+      <details class="guide-editor" style="margin-top:16px">
+        <summary>Edit destination photo and map</summary>
+        <form id="destinationForm">
+          <div class="field"><label for="destinationPhotoInput">Photo URL <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input id="destinationPhotoInput" name="photoUrl" type="url" placeholder="https://..."><span class="field-hint">Update the photo credit below when you replace the image.</span></div>
+          <div class="field"><label for="destinationCreditInput">Photo credit <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input id="destinationCreditInput" name="photoCreditLabel" maxlength="120" placeholder="Photographer and license"></div>
+          <div class="field"><label for="destinationCreditUrlInput">Photo credit link <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input id="destinationCreditUrlInput" name="photoCreditUrl" type="url" placeholder="https://..."></div>
+          <div class="field"><label for="destinationMapsInput">Google Maps link <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input id="destinationMapsInput" name="mapsUrl" type="url" placeholder="Paste a Google Maps link"><span class="field-hint">Leave blank to use a Google Maps search for this destination.</span></div>
+          <div class="guide-save-row"><button type="submit" class="button button-green">Save destination</button><p class="guide-save-note">Saved on this device only; other people's browsers won't sync these changes.</p></div>
+        </form>
+      </details>
+    </section>
+    <section class="session-board" aria-labelledby="sessionHeading">
+      <h2 id="sessionHeading">Tips &amp; comments</h2>
+      <p class="session-intro">Share a tip or comment with the crew. Posts are saved in this browser only and are not visible on other people's devices.</p>
+      <form class="session-form" id="sessionForm">
+        <div class="field"><label for="sessionAuthor">Your name *</label><input id="sessionAuthor" name="author" required maxlength="50" placeholder="Name from the crew"></div>
+        <div class="field"><label for="sessionType">Post type</label><select id="sessionType" name="type"><option value="tip">Tip</option><option value="comment">Comment</option></select></div>
+        <div class="field"><label for="sessionDestination">Destination</label><select id="sessionDestination" name="destination"></select></div>
+        <div class="field"><label for="sessionHotel">Hotel</label><select id="sessionHotel" name="hotel"><option value="general">General</option><option value="1">Hotel 1</option><option value="2">Hotel 2</option></select></div>
+        <div class="field field-message"><label for="sessionText">Tip or comment *</label><textarea id="sessionText" name="text" required maxlength="800" placeholder="Write a tip or comment for the crew..."></textarea></div>
+        <button class="button button-green session-submit" type="submit">Post to session</button>
+      </form>
+      <div class="session-posts" id="sessionPosts" aria-live="polite"></div>
     </section>
     <section class="stats" aria-label="Places by category">
       <div class="stat"><div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10h18M5 10v10m14-10v10M3 20h18M4 10l2-6h12l2 6M9 10v4m6-4v4"/></svg></div><div><div class="stat-num" id="eatCount">0</div><div class="stat-label">Places to eat</div></div></div>
@@ -217,6 +313,27 @@
       </form>
     </section>
   </div>
+  <div class="modal-backdrop" id="crewModalBackdrop" role="presentation">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="crewModalTitle">
+      <div class="modal-head">
+        <div><h2 id="crewModalTitle">Edit travel crew</h2><p>Paste names or import a WhatsApp chat export.</p></div>
+        <button class="close-button" id="closeCrewModal" type="button" aria-label="Close">×</button>
+      </div>
+      <form id="crewForm">
+        <div class="field">
+          <label for="crewNamesInput">Crew names</label>
+          <textarea id="crewNamesInput" name="names" maxlength="2500" placeholder="Maya&#10;Jamie&#10;Alex"></textarea>
+          <span class="field-hint">Add up to 50 names. Blank lines and duplicates are removed.</span>
+        </div>
+        <div class="field">
+          <label for="whatsAppChatFile">Import names from WhatsApp chat (.txt)</label>
+          <input id="whatsAppChatFile" type="file" accept=".txt,.text,text/plain">
+          <span class="field-hint">Choose an exported chat file. Names are read on this device only; only participants who sent messages can be detected.</span>
+        </div>
+        <div class="form-actions"><span></span><button type="submit" class="button button-green">Save crew</button></div>
+      </form>
+    </section>
+  </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script>
     const seedPlaces = [
@@ -231,10 +348,28 @@
     const categoryIcons = { eat: '🍴', shop: '🛍️', visit: '📍' };
     const categoryEmoji = { eat: '🍴', shop: '🛍️', visit: '✨' };
     const storageKey = 'trip-together-lisbon-v1';
+    const destinationStorageKey = 'ca2026-destination-guides-v1';
+    const crewStorageKey = 'ca2026-travel-crew-v1';
+    const sessionPostsStorageKey = 'ca2026-session-posts-v1';
+    const defaultCrew = ['Maya', 'Jamie', 'Alex'];
+    const destinations = [
+      { id: 'gothenburg', name: 'Gothenburg', country: 'Sweden', photoUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/Karlatornet_along_with_Gothenburg_skyline..jpg/960px-Karlatornet_along_with_Gothenburg_skyline..jpg', photoCreditLabel: 'Axadem · CC BY-SA 4.0', photoCreditUrl: 'https://commons.wikimedia.org/wiki/File:Karlatornet_along_with_Gothenburg_skyline..jpg' },
+      { id: 'gdansk', name: 'Gdansk', country: 'Poland', photoUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/21/Gdansk_Gora_Gradowa_2.jpg/960px-Gdansk_Gora_Gradowa_2.jpg', photoCreditLabel: 'Andrzej Otrębski · CC BY-SA 3.0', photoCreditUrl: 'https://commons.wikimedia.org/wiki/File:Gdansk_Gora_Gradowa_2.jpg' },
+      { id: 'oslo', name: 'Oslo', country: 'Norway', photoUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/Oslo_Skyline%2C_drone.jpg/960px-Oslo_Skyline%2C_drone.jpg', photoCreditLabel: 'Sunderland Renaissance · CC BY-SA 4.0', photoCreditUrl: 'https://commons.wikimedia.org/wiki/File:Oslo_Skyline,_drone.jpg' },
+      { id: 'helsinki', name: 'Helsinki', country: 'Finland', photoUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/Helsinki_Cathedral_2019.jpg/960px-Helsinki_Cathedral_2019.jpg', photoCreditLabel: 'Farzad Abedi · CC BY-SA 4.0', photoCreditUrl: 'https://commons.wikimedia.org/wiki/File:Helsinki_Cathedral_2019.jpg' },
+      { id: 'stockholm', name: 'Stockholm', country: 'Sweden', photoUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/14/Stockholm_city_skyline_and_waterfront_at_night_%28April_2016%29.jpg/960px-Stockholm_city_skyline_and_waterfront_at_night_%28April_2016%29.jpg', photoCreditLabel: 'Micael Widell · CC BY 3.0', photoCreditUrl: 'https://commons.wikimedia.org/wiki/File:Stockholm_city_skyline_and_waterfront_at_night_(April_2016).jpg' },
+      { id: 'others', name: 'Others', country: '', mapSearch: 'Europe', photoUrl: '', photoCreditLabel: '', photoCreditUrl: '' }
+    ];
+    const defaultDestinationId = 'gothenburg';
+    let toastTimer;
     let places = loadPlaces();
+    let crew = loadCrew();
+    let sessionPosts = loadSessionPosts();
+    let destinationState = loadDestinationState();
+    let activeDestinationId = destinations.some(destination => destination.id === destinationState.selectedId) ? destinationState.selectedId : defaultDestinationId;
+    let activeDestination = destinations.find(destination => destination.id === activeDestinationId);
     let activeFilter = 'all';
     let editingId = null;
-    let toastTimer;
 
     function loadPlaces() {
       try {
@@ -246,9 +381,413 @@
       try { localStorage.setItem(storageKey, JSON.stringify(places)); }
       catch { showToast('Could not save on this device. Try downloading a backup.'); }
     }
+    function loadCrew() {
+      try {
+        const saved = localStorage.getItem(crewStorageKey);
+        if (saved === null) return [...defaultCrew];
+        const parsed = JSON.parse(saved);
+        if (!Array.isArray(parsed) || parsed.some(name => typeof name !== 'string')) throw new Error('Invalid saved crew list.');
+        return parsed.map(name => name.trim()).filter(Boolean).slice(0, 50);
+      } catch {
+        showToast('Could not load the saved travel crew.');
+        return [...defaultCrew];
+      }
+    }
+    function renderCrew() {
+      const avatarList = document.getElementById('crewAvatars');
+      avatarList.replaceChildren();
+      crew.slice(0, 5).forEach(name => {
+        const avatar = document.createElement('span');
+        avatar.className = 'avatar';
+        avatar.textContent = Array.from(name.trim())[0]?.toLocaleUpperCase() || '?';
+        avatar.setAttribute('aria-hidden', 'true');
+        avatarList.append(avatar);
+      });
+      if (crew.length > 5) {
+        const more = document.createElement('span');
+        more.className = 'avatar avatar-more';
+        more.textContent = `+${crew.length - 5}`;
+        more.setAttribute('aria-hidden', 'true');
+        avatarList.append(more);
+      }
+      const label = document.getElementById('contributorLabel');
+      label.textContent = `${crew.length} ${crew.length === 1 ? 'crew member' : 'crew members'}`;
+      label.title = crew.join(', ') || 'No crew members added';
+      avatarList.setAttribute('aria-label', crew.length ? `Travel crew: ${crew.join(', ')}` : 'No travel crew members');
+    }
+    function openCrewModal() {
+      document.getElementById('crewNamesInput').value = crew.join('\n');
+      document.getElementById('crewModalBackdrop').classList.add('open');
+      setTimeout(() => document.getElementById('crewNamesInput').focus(), 50);
+    }
+    function closeCrewModal() { document.getElementById('crewModalBackdrop').classList.remove('open'); }
+    function whatsappChatSenders(chatText) {
+      const names = [];
+      for (const line of chatText.replace(/^\uFEFF/, '').split(/\r?\n/)) {
+        const bracketed = line.match(/^\[[^\]\r\n]{1,60}\]\s*([^:\r\n]{1,80}):\s/);
+        const dated = line.match(/^.{1,60}\s[-–]\s([^:\r\n]{1,80}):\s/);
+        const name = (bracketed || dated)?.[1]?.trim();
+        if (name) names.push(name);
+      }
+      const seen = new Set();
+      return names.filter(name => {
+        const key = name.toLocaleLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+    function loadSessionPosts() {
+      try {
+        const saved = localStorage.getItem(sessionPostsStorageKey);
+        if (saved === null) return [];
+        const parsed = JSON.parse(saved);
+        if (!Array.isArray(parsed)) throw new Error('Invalid saved session posts.');
+        return parsed.filter(post => post && typeof post === 'object'
+          && typeof post.id === 'string'
+          && typeof post.author === 'string'
+          && typeof post.text === 'string'
+          && (post.type === 'tip' || post.type === 'comment')
+          && typeof post.destinationId === 'string'
+          && ['general', '1', '2'].includes(post.hotel)
+          && typeof post.createdAt === 'string'
+          && destinations.some(destination => destination.id === post.destinationId));
+      } catch {
+        showToast('Could not load saved tips and comments.');
+        return [];
+      }
+    }
+    function renderSessionPosts() {
+      const container = document.getElementById('sessionPosts');
+      container.replaceChildren();
+      if (!sessionPosts.length) {
+        const empty = document.createElement('p');
+        empty.className = 'session-empty';
+        empty.textContent = 'No tips or comments yet. Start the conversation.';
+        container.append(empty);
+        return;
+      }
+      const destinationNames = new Map(destinations.map(destination => [destination.id, destination.name]));
+      [...sessionPosts].reverse().forEach(post => {
+        const article = document.createElement('article');
+        article.className = 'session-post';
+        const header = document.createElement('div');
+        header.className = 'session-post-head';
+        const author = document.createElement('span');
+        author.className = 'session-post-author';
+        author.textContent = post.author;
+        const type = document.createElement('span');
+        type.className = 'session-post-type';
+        type.textContent = post.type;
+        const context = document.createElement('span');
+        context.className = 'session-post-context';
+        const hotelLabel = post.hotel === 'general'
+          ? 'General'
+          : destinationState.guides[post.destinationId]?.hotels[Number(post.hotel) - 1]?.name || `Hotel ${post.hotel}`;
+        context.textContent = `${destinationNames.get(post.destinationId)} · ${hotelLabel}`;
+        const time = document.createElement('time');
+        time.className = 'session-post-time';
+        time.dateTime = post.createdAt;
+        const createdAt = new Date(post.createdAt);
+        time.textContent = Number.isNaN(createdAt.getTime()) ? '' : createdAt.toLocaleString();
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'delete-button session-post-delete';
+        deleteButton.textContent = 'Delete';
+        deleteButton.setAttribute('aria-label', `Delete ${post.type} by ${post.author}`);
+        deleteButton.addEventListener('click', () => {
+          const nextPosts = sessionPosts.filter(item => item.id !== post.id);
+          try {
+            localStorage.setItem(sessionPostsStorageKey, JSON.stringify(nextPosts));
+          } catch {
+            showToast('Could not delete this post in this browser.');
+            return;
+          }
+          sessionPosts = nextPosts;
+          renderSessionPosts();
+          showToast('Post deleted.');
+        });
+        header.append(author, type, context, time, deleteButton);
+        const text = document.createElement('p');
+        text.className = 'session-post-text';
+        text.textContent = post.text;
+        article.append(header, text);
+        container.append(article);
+      });
+    }
+    function renderSessionDestinationOptions() {
+      const select = document.getElementById('sessionDestination');
+      const selectedId = destinations.some(destination => destination.id === select.value) ? select.value : activeDestinationId;
+      select.replaceChildren();
+      destinations.forEach(destination => {
+        const option = document.createElement('option');
+        option.value = destination.id;
+        option.textContent = destination.name;
+        select.append(option);
+      });
+      select.value = selectedId;
+      renderSessionHotelOptions();
+    }
+    function renderSessionHotelOptions() {
+      const destinationId = document.getElementById('sessionDestination').value;
+      const hotelSelect = document.getElementById('sessionHotel');
+      const selectedHotel = hotelSelect.value || 'general';
+      const hotels = destinationState.guides[destinationId]?.hotels || [];
+      hotelSelect.replaceChildren(new Option('General', 'general'));
+      hotels.forEach((hotel, index) => {
+        hotelSelect.append(new Option(hotel.name || `Hotel ${index + 1}`, String(index + 1)));
+      });
+      hotelSelect.value = [...hotelSelect.options].some(option => option.value === selectedHotel) ? selectedHotel : 'general';
+    }
+    function normalizeWebUrl(value) {
+      if (!value) return '';
+      try {
+        const url = new URL(value);
+        return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : '';
+      } catch { return ''; }
+    }
+    function defaultGuide(destination) {
+      return {
+        hotels: [1, 2].map(() => ({ location: '', lists: { eat: [], visit: [], shopping: [], tips: [] } })),
+        photoUrl: destination.photoUrl,
+        photoCreditLabel: destination.photoCreditLabel,
+        photoCreditUrl: destination.photoCreditUrl,
+        mapsUrl: ''
+      };
+    }
+    function loadDestinationState() {
+      const state = {
+        selectedId: defaultDestinationId,
+        guides: Object.fromEntries(destinations.map(destination => [destination.id, defaultGuide(destination)]))
+      };
+      try {
+        const saved = localStorage.getItem(destinationStorageKey);
+        if (!saved) return state;
+        const parsed = JSON.parse(saved);
+        if (!parsed || typeof parsed !== 'object') throw new Error('Invalid destination guide data.');
+        if (typeof parsed.selectedId === 'string') state.selectedId = parsed.selectedId;
+        for (const destination of destinations) {
+          const guide = parsed.guides?.[destination.id];
+          if (!guide || typeof guide !== 'object') continue;
+          const defaults = state.guides[destination.id];
+          const legacyVisitItems = (typeof guide.highlight === 'string' ? guide.highlight.split(/\r?\n/) : [])
+            .map(item => item.trim()).filter(Boolean);
+          const legacyLists = guide.lists && typeof guide.lists === 'object'
+            ? guide.lists
+            : { visit: legacyVisitItems, tips: Array.isArray(guide.tips) ? guide.tips.filter(tip => typeof tip === 'string') : [] };
+          const savedHotels = Array.isArray(guide.hotels) ? guide.hotels : [];
+          state.guides[destination.id] = {
+            hotels: defaults.hotels.map((hotel, index) => {
+              const savedHotel = savedHotels[index];
+              const lists = savedHotel?.lists && typeof savedHotel.lists === 'object'
+                ? savedHotel.lists
+                : index === 0 ? legacyLists : {};
+              return {
+                name: typeof savedHotel?.name === 'string' && savedHotel.name.trim()
+                  ? savedHotel.name.trim()
+                  : `Hotel ${index + 1}`,
+                location: typeof savedHotel?.location === 'string' ? savedHotel.location.trim() : '',
+                lists: {
+                  eat: Array.isArray(lists.eat) ? lists.eat.filter(item => typeof item === 'string').slice(0, 20) : [],
+                  visit: Array.isArray(lists.visit) ? lists.visit.filter(item => typeof item === 'string').slice(0, 20) : [],
+                  shopping: Array.isArray(lists.shopping) ? lists.shopping.filter(item => typeof item === 'string').slice(0, 20) : [],
+                  tips: Array.isArray(lists.tips) ? lists.tips.filter(item => typeof item === 'string').slice(0, 20) : []
+                }
+              };
+            }),
+            photoUrl: guide.photoUrl === '' ? '' : normalizeWebUrl(guide.photoUrl) || defaults.photoUrl,
+            photoCreditLabel: typeof guide.photoCreditLabel === 'string' ? guide.photoCreditLabel : defaults.photoCreditLabel,
+            photoCreditUrl: guide.photoCreditUrl === '' ? '' : normalizeWebUrl(guide.photoCreditUrl) || defaults.photoCreditUrl,
+            mapsUrl: guide.mapsUrl === '' ? '' : normalizeWebUrl(guide.mapsUrl)
+          };
+        }
+      } catch {
+        showToast('Could not load saved destination guides.');
+      }
+      return state;
+    }
+    function saveDestinationState() {
+      destinationState.selectedId = activeDestinationId;
+      try {
+        localStorage.setItem(destinationStorageKey, JSON.stringify(destinationState));
+        return true;
+      } catch {
+        showToast('Could not save destination changes in this browser.');
+        return false;
+      }
+    }
+    function activeGuide() { return destinationState.guides[activeDestinationId]; }
+    function destinationMapUrl(destination, guide) {
+      return guide.mapsUrl || 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(destination.mapSearch || [destination.name, destination.country].filter(Boolean).join(', '));
+    }
+    function renderDestinationMenu() {
+      document.getElementById('destinationGrid').innerHTML = destinations.map(destination => {
+        const guide = destinationState.guides[destination.id];
+        const photo = guide.photoUrl ? `<img src="${safeText(guide.photoUrl)}" alt="" loading="lazy" decoding="async">` : '';
+        const credit = guide.photoCreditLabel
+          ? `<p class="photo-credit">Photo: ${guide.photoCreditUrl ? `<a href="${safeText(guide.photoCreditUrl)}" target="_blank" rel="noopener noreferrer">${safeText(guide.photoCreditLabel)}</a>` : safeText(guide.photoCreditLabel)}</p>`
+          : '';
+        return `<article class="destination-item"><button class="destination-card" type="button" data-destination="${destination.id}" aria-pressed="${destination.id === activeDestinationId}" aria-label="Show ${safeText(destination.name)} guide">${photo}<span class="destination-name">${safeText(destination.name)}</span></button>${credit}</article>`;
+      }).join('');
+      document.querySelectorAll('.destination-card').forEach(button => button.addEventListener('click', () => {
+        if (button.dataset.destination === activeDestinationId || !saveHotelGuides(false) || !saveCurrentGuide(false)) return;
+        activeDestinationId = button.dataset.destination;
+        activeDestination = destinations.find(destination => destination.id === activeDestinationId);
+        saveDestinationState();
+        renderDestinationMenu();
+        renderDestinationGuide();
+        renderSessionDestinationOptions();
+        render();
+      }));
+    }
+    function renderDestinationGuide() {
+      const guide = activeGuide();
+      document.getElementById('guideTitle').textContent = [activeDestination.name, activeDestination.country].filter(Boolean).join(', ');
+      const renderList = (elementId, items, placeholder) => {
+        const list = document.getElementById(elementId);
+        list.replaceChildren();
+        (items.length ? items : [placeholder]).forEach(text => {
+          const item = document.createElement('li');
+          item.textContent = text;
+          if (!items.length) item.className = 'guide-empty';
+          list.append(item);
+        });
+      };
+      const categories = [
+        { id: 'eat', label: 'Eat', placeholder: 'Add an eating recommendation.' },
+        { id: 'visit', label: 'Visit', placeholder: 'Add a place to visit.' },
+        { id: 'shopping', label: 'Shopping', placeholder: 'Add a shopping recommendation.' },
+        { id: 'tips', label: 'Tips', placeholder: 'Add a tip for this destination.' }
+      ];
+      document.getElementById('destinationHotels').innerHTML = guide.hotels.map((hotel, index) => {
+        const hotelNumber = index + 1;
+        const hotelName = hotel.name || `Hotel ${hotelNumber}`;
+        const hotelMapLink = hotel.location
+          ? `<a class="button button-outline hotel-map-link" href="${safeText(hotelLocationMapUrl(hotel.location))}" target="_blank" rel="noopener noreferrer" aria-label="Open ${safeText(hotelName)} location in Google Maps">Open ${safeText(hotelName)} location in Google Maps</a>`
+          : '';
+        const categoriesHtml = categories.map(category => `
+          <details class="guide-category">
+            <summary>${category.label}</summary>
+            <ul id="hotel${hotelNumber}-${category.id}"></ul>
+          </details>`).join('');
+        const fieldsHtml = categories.map(category => `
+          <div class="field"><label for="hotel${hotelNumber}-${category.id}-input">${category.label}</label><textarea id="hotel${hotelNumber}-${category.id}-input" name="${category.id}" maxlength="2000" placeholder="Add one recommendation per line"></textarea></div>`).join('');
+        return `
+          <details class="hotel-part" ${index === 0 ? 'open' : ''}>
+            <summary>${safeText(hotelName)}</summary>
+            <div class="hotel-part-content">
+              <div><div class="guide-categories" aria-label="${safeText(hotelName)} recommendations">${categoriesHtml}</div>${hotelMapLink}</div>
+              <details class="guide-editor">
+                <summary>Edit ${safeText(hotelName)} lists</summary>
+                <form class="hotel-guide-form" data-hotel-index="${index}">
+                  <div class="field"><label for="hotel${hotelNumber}-name-input">Hotel name</label><input id="hotel${hotelNumber}-name-input" name="name" maxlength="80" value="${safeText(hotelName)}" placeholder="Hotel ${hotelNumber}"></div>
+                  <div class="field"><label for="hotel${hotelNumber}-location-input">GPS coordinates or Google Maps link</label><input id="hotel${hotelNumber}-location-input" name="location" maxlength="500" value="${safeText(hotel.location || '')}" placeholder="57.7089, 11.9746 or paste a Maps link"><span class="field-hint">Add coordinates or a Google Maps URL to show a map link under this hotel.</span></div>
+                  ${fieldsHtml}
+                  <div class="guide-save-row"><button type="submit" class="button button-green">Save hotel</button></div>
+                </form>
+              </details>
+            </div>
+          </details>`;
+      }).join('');
+      guide.hotels.forEach((hotel, index) => {
+        const hotelNumber = index + 1;
+        for (const category of categories) {
+          renderList(`hotel${hotelNumber}-${category.id}`, hotel.lists[category.id], category.placeholder);
+          const input = document.querySelector(`.hotel-guide-form[data-hotel-index="${index}"] [name="${category.id}"]`);
+          input.value = hotel.lists[category.id].join('\n');
+        }
+      });
+      document.querySelectorAll('.hotel-guide-form').forEach(form => form.addEventListener('submit', event => {
+        event.preventDefault();
+        saveHotelGuides(true);
+      }));
+      const mapLink = document.getElementById('destinationMapLink');
+      mapLink.href = destinationMapUrl(activeDestination, guide);
+      mapLink.setAttribute('aria-label', `Open ${activeDestination.name} in Google Maps`);
+      const form = document.getElementById('destinationForm');
+      form.elements.photoUrl.value = guide.photoUrl;
+      form.elements.photoCreditLabel.value = guide.photoCreditLabel;
+      form.elements.photoCreditUrl.value = guide.photoCreditUrl;
+      form.elements.mapsUrl.value = guide.mapsUrl;
+    }
+    function saveHotelGuides(announce) {
+      const forms = [...document.querySelectorAll('.hotel-guide-form')];
+      if (forms.length !== 2) return false;
+      const previousHotels = activeGuide().hotels;
+      const categories = ['eat', 'visit', 'shopping', 'tips'];
+      const locationInputs = forms.map(form => new FormData(form).get('location').trim());
+      if (locationInputs.some(location => location && !isValidHotelLocation(location))) {
+        showToast('Enter GPS coordinates as latitude, longitude or a full http(s) Google Maps link.');
+        return false;
+      }
+      const nextHotels = forms.map(form => {
+        const data = Object.fromEntries(new FormData(form));
+        return {
+          name: data.name.trim() || `Hotel ${Number(form.dataset.hotelIndex) + 1}`,
+          location: data.location.trim(),
+          lists: Object.fromEntries(categories.map(category => [
+            category,
+            data[category].split(/\r?\n/).map(item => item.trim()).filter(Boolean).slice(0, 20)
+          ]))
+        };
+      });
+      if (JSON.stringify(nextHotels) === JSON.stringify(previousHotels)) return true;
+      activeGuide().hotels = nextHotels;
+      if (!saveDestinationState()) {
+        activeGuide().hotels = previousHotels;
+        renderDestinationGuide();
+        return false;
+      }
+      renderDestinationGuide();
+      renderSessionHotelOptions();
+      renderSessionPosts();
+      if (announce) showToast(`${activeDestination.name} hotel lists saved on this device.`);
+      return true;
+    }
+    function isValidHotelLocation(location) {
+      const coordinates = location.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+      if (coordinates) {
+        const latitude = Number(coordinates[1]);
+        const longitude = Number(coordinates[2]);
+        return latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
+      }
+      return Boolean(normalizeWebUrl(location));
+    }
+    function hotelLocationMapUrl(location) {
+      return normalizeWebUrl(location) || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
+    }
+    function saveCurrentGuide(announce) {
+      const form = document.getElementById('destinationForm');
+      const data = Object.fromEntries(new FormData(form));
+      const photoUrl = normalizeWebUrl(data.photoUrl.trim());
+      const photoCreditUrl = normalizeWebUrl(data.photoCreditUrl.trim());
+      const mapsUrl = normalizeWebUrl(data.mapsUrl.trim());
+      if (data.photoUrl.trim() && !photoUrl) { showToast('Enter a full http(s) photo URL.'); return false; }
+      if (data.photoCreditUrl.trim() && !photoCreditUrl) { showToast('Enter a full http(s) photo credit link.'); return false; }
+      if (data.mapsUrl.trim() && !mapsUrl) { showToast('Enter a full http(s) Google Maps link.'); return false; }
+      const nextGuide = {
+        hotels: activeGuide().hotels,
+        photoUrl,
+        photoCreditLabel: data.photoCreditLabel.trim(),
+        photoCreditUrl,
+        mapsUrl
+      };
+      if (JSON.stringify(nextGuide) === JSON.stringify(activeGuide())) return true;
+      const previousGuide = activeGuide();
+      destinationState.guides[activeDestinationId] = nextGuide;
+      if (!saveDestinationState()) {
+        destinationState.guides[activeDestinationId] = previousGuide;
+        renderDestinationGuide();
+        return false;
+      }
+      renderDestinationMenu();
+      renderDestinationGuide();
+      if (announce) showToast(`${activeDestination.name} guide saved on this device.`);
+      return true;
+    }
     function mapsUrl(place) {
       if (place.map) return place.map;
-      return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([place.name, place.area, 'Lisbon'].filter(Boolean).join(', '));
+      return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([place.name, place.area, activeDestination.name, activeDestination.country].filter(Boolean).join(', '));
     }
     function safeText(value) {
       return String(value || '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -259,7 +798,7 @@
       document.getElementById('placeList').innerHTML = shown.length ? shown.map((place, index) => `
         <article class="place" style="animation-delay:${Math.min(index * 45, 240)}ms">
           <div class="place-icon ${place.category}">${categoryIcons[place.category]}</div>
-          <div class="place-info"><div class="place-title-line"><h3 title="${safeText(place.name)}">${safeText(place.name)}</h3><span class="place-tag ${place.category}">${categoryNames[place.category]}</span></div><p class="place-detail">${safeText(place.area || 'Lisbon')}${place.note ? `<span class="dot">·</span>${safeText(place.note)}` : ''}${place.by ? `<span class="dot">·</span>via ${safeText(place.by)}` : ''}</p></div>
+          <div class="place-info"><div class="place-title-line"><h3 title="${safeText(place.name)}">${safeText(place.name)}</h3><span class="place-tag ${place.category}">${categoryNames[place.category]}</span></div><p class="place-detail">${safeText(place.area || activeDestination.name)}${place.note ? `<span class="dot">·</span>${safeText(place.note)}` : ''}${place.by ? `<span class="dot">·</span>via ${safeText(place.by)}` : ''}</p></div>
           <div class="place-actions"><a class="icon-button" href="${safeText(mapsUrl(place))}" target="_blank" rel="noopener" title="Open in Google Maps" aria-label="Open ${safeText(place.name)} in Google Maps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></a><button class="icon-button edit-place" data-id="${safeText(place.id)}" title="Edit place" aria-label="Edit ${safeText(place.name)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m14 5 5 5M4 20l4.2-.8L20 7.4 16.6 4 4.8 15.8 4 20Z"/></svg></button></div>
         </article>`).join('') : '<div class="empty">Nothing here yet. Add the first good tip.</div>';
       document.querySelectorAll('.edit-place').forEach(button => button.addEventListener('click', () => openModal(button.dataset.id)));
@@ -312,6 +851,10 @@
       }
       return lines.join('\n').trim();
     }
+    document.getElementById('destinationForm').addEventListener('submit', event => {
+      event.preventDefault();
+      saveCurrentGuide(true);
+    });
     document.getElementById('placeForm').addEventListener('submit', event => {
       event.preventDefault();
       const form = event.currentTarget;
@@ -328,8 +871,102 @@
       savePlaces(); render(); closeModal(); showToast('Place removed.');
     });
     document.getElementById('closeModal').addEventListener('click', closeModal);
+    document.getElementById('editCrewButton').addEventListener('click', openCrewModal);
+    document.getElementById('closeCrewModal').addEventListener('click', closeCrewModal);
+    document.getElementById('crewModalBackdrop').addEventListener('click', event => {
+      if (event.target.id === 'crewModalBackdrop') closeCrewModal();
+    });
+    document.getElementById('crewForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const names = document.getElementById('crewNamesInput').value
+        .split(/\r?\n/)
+        .map(name => name.trim())
+        .filter(Boolean);
+      const uniqueNames = [...new Map(names.map(name => [name.toLocaleLowerCase(), name])).values()];
+      if (uniqueNames.length > 50) { showToast('Add no more than 50 crew members.'); return; }
+      try {
+        localStorage.setItem(crewStorageKey, JSON.stringify(uniqueNames));
+      } catch {
+        showToast('Could not save the travel crew in this browser.');
+        return;
+      }
+      crew = uniqueNames;
+      renderCrew();
+      closeCrewModal();
+      showToast('Travel crew saved on this device.');
+    });
+    document.getElementById('whatsAppChatFile').addEventListener('change', async event => {
+      const input = event.currentTarget;
+      const file = input.files[0];
+      if (!file) return;
+      try {
+        const importedNames = whatsappChatSenders(await file.text());
+        if (!importedNames.length) {
+          showToast('No chat participants found. Choose a WhatsApp exported .txt chat.');
+          return;
+        }
+        const namesInput = document.getElementById('crewNamesInput');
+        const currentNames = namesInput.value.split(/\r?\n/).map(name => name.trim()).filter(Boolean);
+        const seen = new Set();
+        const mergedNames = [...currentNames, ...importedNames].filter(name => {
+          const key = name.toLocaleLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        if (mergedNames.length > 50) {
+          showToast(`Found ${importedNames.length} participants, but the crew limit is 50. Remove names before importing.`);
+          return;
+        }
+        namesInput.value = mergedNames.join('\n');
+        showToast(`Imported ${importedNames.length} unique ${importedNames.length === 1 ? 'name' : 'names'}. Review and save the crew.`);
+      } catch {
+        showToast('Could not read that chat export. Try a plain-text WhatsApp .txt file.');
+      } finally {
+        input.value = '';
+      }
+    });
+    document.getElementById('sessionForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const data = Object.fromEntries(new FormData(form));
+      const author = data.author.trim();
+      const text = data.text.trim();
+      if (!author || !text) { showToast('Add your name and a tip or comment before posting.'); return; }
+      if (!destinations.some(destination => destination.id === data.destination)) {
+        showToast('Choose a valid destination.');
+        return;
+      }
+      if (!['general', '1', '2'].includes(data.hotel)) {
+        showToast('Choose a valid hotel section.');
+        return;
+      }
+      const post = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        author,
+        type: data.type === 'comment' ? 'comment' : 'tip',
+        text,
+        destinationId: data.destination,
+        hotel: data.hotel,
+        createdAt: new Date().toISOString()
+      };
+      const nextPosts = [...sessionPosts, post];
+      try {
+        localStorage.setItem(sessionPostsStorageKey, JSON.stringify(nextPosts));
+      } catch {
+        showToast('Could not save your post in this browser.');
+        return;
+      }
+      sessionPosts = nextPosts;
+      form.elements.text.value = '';
+      renderSessionPosts();
+      showToast('Posted to the session on this device.');
+    });
+    document.getElementById('sessionDestination').addEventListener('change', renderSessionHotelOptions);
     document.getElementById('modalBackdrop').addEventListener('click', event => { if (event.target.id === 'modalBackdrop') closeModal(); });
-    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeModal(); });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') { closeModal(); closeCrewModal(); }
+    });
     document.getElementById('addPromptButton').addEventListener('click', () => openModal());
     document.querySelectorAll('.filter').forEach(button => button.addEventListener('click', () => {
       document.querySelectorAll('.filter').forEach(item => item.classList.remove('active'));
@@ -346,12 +983,18 @@
       window.open(whatsappUrl, '_blank', 'noopener');
     });
     document.getElementById('exportButton').addEventListener('click', () => {
-      const backup = { title: document.getElementById('tripTitle').textContent, places, exportedAt: new Date().toISOString() };
+      if (!saveHotelGuides(false) || !saveCurrentGuide(false)) return;
+      const backup = { title: document.getElementById('tripTitle').textContent, places, crew, sessionPosts, selectedDestination: activeDestinationId, destinationGuides: destinationState.guides, exportedAt: new Date().toISOString() };
       const link = document.createElement('a');
       link.href = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }));
-      link.download = 'trip-together-backup.json'; link.click(); URL.revokeObjectURL(link.href);
+      link.download = 'ca2026-backup.json'; link.click(); URL.revokeObjectURL(link.href);
       showToast('Trip backup downloaded.');
     });
+    renderDestinationMenu();
+    renderDestinationGuide();
+    renderSessionDestinationOptions();
+    renderSessionPosts();
+    renderCrew();
     render();
   </script>
 </body>
