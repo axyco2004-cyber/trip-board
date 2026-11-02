@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f3eb">
+  <title>Trip Together | A little local knowledge goes a long way</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f6f3eb;
+      --ink: #202a27;
+      --muted: #78817b;
+      --line: #dfded4;
+      --white: #fffefa;
+      --green: #2f6b55;
+      --green-dark: #214f40;
+      --orange: #e77a52;
+      --yellow: #f3c754;
+      --pink: #e9b5a4;
+      --serif: "Playfair Display", Georgia, serif;
+      --sans: "DM Sans", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 14px; }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    a { color: inherit; }
+    .topbar { height: 68px; display: flex; align-items: center; justify-content: space-between; padding: 0 5.2%; border-bottom: 1px solid var(--line); background: rgba(246,243,235,.96); }
+    .brand { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 700; letter-spacing: -.3px; }
+    .brand-mark { width: 28px; height: 28px; display: grid; place-items: center; background: var(--green); color: white; border-radius: 50% 50% 50% 8px; transform: rotate(-45deg); }
+    .brand-mark span { transform: rotate(45deg); font-size: 15px; }
+    .top-actions { display: flex; gap: 9px; align-items: center; }
+    .button { border: 0; display: inline-flex; gap: 8px; align-items: center; justify-content: center; min-height: 40px; padding: 0 15px; border-radius: 5px; font-weight: 700; transition: transform .18s ease, background .18s ease; }
+    .button:hover { transform: translateY(-1px); }
+    .button-quiet { color: var(--ink); background: transparent; }
+    .button-quiet:hover { background: #eae8df; }
+    .button-green { background: var(--green); color: white; }
+    .button-green:hover { background: var(--green-dark); }
+    .button-outline { border: 1px solid var(--line); background: var(--white); color: var(--ink); }
+    .button svg { width: 17px; height: 17px; }
+    .shell { max-width: 1240px; margin: auto; padding: 32px 32px 72px; }
+    .trip-head { display: flex; justify-content: space-between; align-items: end; gap: 20px; margin-bottom: 24px; }
+    .eyebrow { color: var(--green); text-transform: uppercase; letter-spacing: 1.5px; font-size: 10px; font-weight: 700; }
+    h1 { margin: 7px 0 5px; font: 600 38px/1.12 var(--serif); letter-spacing: 0; }
+    .trip-sub { color: var(--muted); margin: 0; }
+    .trip-meta { display: flex; align-items: center; gap: 11px; color: var(--muted); padding-bottom: 3px; white-space: nowrap; }
+    .avatars { display: flex; padding-left: 5px; }
+    .avatar { margin-left: -5px; border: 2px solid var(--paper); width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: var(--ink); font-size: 10px; font-weight: 700; background: var(--yellow); }
+    .avatar:nth-child(2) { background: var(--pink); }
+    .avatar:nth-child(3) { background: #b7c8b6; }
+    .cover { min-height: 268px; position: relative; overflow: hidden; border-radius: 7px; color: white; background: #405d4c url("https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=1800&q=85") center 48% / cover; display: flex; align-items: end; }
+    .cover:after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(20,35,29,.76), rgba(20,35,29,.06) 85%), linear-gradient(0deg, rgba(20,35,29,.28), transparent 50%); }
+    .cover-copy { position: relative; z-index: 1; padding: 30px 34px; max-width: 580px; }
+    .cover-copy p { margin: 0 0 8px; text-transform: uppercase; letter-spacing: 1.6px; font-size: 10px; font-weight: 700; }
+    .cover-copy h2 { font: 600 31px/1.16 var(--serif); margin: 0 0 7px; }
+    .cover-copy span { color: rgba(255,255,255,.82); font-size: 13px; }
+    .cover-pin { position: absolute; z-index: 1; right: 24px; bottom: 23px; width: 42px; height: 42px; display: grid; place-items: center; background: var(--yellow); color: var(--ink); border-radius: 50%; text-decoration: none; }
+    .cover-pin svg { width: 19px; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0 0 27px; border: 1px solid var(--line); border-top: 0; background: rgba(255,254,250,.55); }
+    .stat { display: flex; gap: 11px; align-items: center; padding: 15px 20px; border-right: 1px solid var(--line); }
+    .stat:last-child { border-right: 0; }
+    .stat-icon { width: 33px; height: 33px; display: grid; place-items: center; border-radius: 50%; background: #e8eee6; color: var(--green); }
+    .stat-icon svg { width: 16px; }
+    .stat-num { font-size: 18px; font-weight: 700; line-height: 1; }
+    .stat-label { color: var(--muted); font-size: 11px; margin-top: 4px; }
+    .content { display: grid; grid-template-columns: minmax(0, 1fr) 274px; gap: 38px; align-items: start; }
+    .section-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 15px; }
+    .section-top h2 { font: 600 23px var(--serif); margin: 0; }
+    .count-label { color: var(--muted); font-size: 12px; margin-left: 8px; font-family: var(--sans); font-weight: 400; }
+    .search { height: 39px; width: 200px; border: 1px solid var(--line); border-radius: 5px; display: flex; align-items: center; gap: 8px; padding: 0 10px; background: var(--white); }
+    .search svg { width: 15px; color: var(--muted); flex: 0 0 auto; }
+    .search input { width: 100%; background: none; border: 0; outline: 0; color: var(--ink); font-size: 12px; }
+    .filters { display: flex; gap: 7px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+    .filter { border: 0; background: transparent; padding: 10px 12px 12px; margin-bottom: -1px; color: var(--muted); border-bottom: 2px solid transparent; font-weight: 600; font-size: 12px; }
+    .filter.active { color: var(--green); border-color: var(--green); }
+    .place-list { display: grid; }
+    .place { min-height: 107px; display: grid; grid-template-columns: 58px minmax(0,1fr) auto; align-items: center; gap: 15px; border-bottom: 1px solid var(--line); padding: 15px 2px; animation: appear .35s ease both; }
+    @keyframes appear { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+    .place-icon { width: 54px; height: 54px; border-radius: 5px; display: grid; place-items: center; font-size: 23px; background: #f0dfc2; }
+    .place-icon.shop { background: #ead9d0; }
+    .place-icon.visit { background: #dce5d8; }
+    .place-info { min-width: 0; }
+    .place-title-line { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .place h3 { font: 600 16px var(--serif); margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .place-tag { border-radius: 3px; color: var(--green); background: #e7eee6; padding: 3px 6px; font-size: 9px; font-weight: 700; white-space: nowrap; }
+    .place-tag.shop { color: #985a45; background: #f2e5df; }
+    .place-tag.visit { color: #52714f; background: #e6ede1; }
+    .place-detail { margin: 5px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .place-detail .dot { padding: 0 4px; }
+    .place-actions { display: flex; gap: 5px; align-items: center; }
+    .icon-button { width: 35px; height: 35px; border: 0; border-radius: 4px; background: transparent; color: var(--muted); display: grid; place-items: center; }
+    .icon-button:hover { background: #e9e7dd; color: var(--ink); }
+    .icon-button svg { width: 16px; }
+    .side { border-left: 1px solid var(--line); padding-left: 24px; }
+    .side h3 { font: 600 19px var(--serif); margin: 0 0 6px; }
+    .side-intro { color: var(--muted); font-size: 11px; line-height: 1.6; margin: 0 0 16px; }
+    .prompt { padding: 15px; background: #e9eee5; border-radius: 5px; margin-bottom: 10px; }
+    .prompt p { margin: 0 0 10px; color: #3e574a; font: 500 14px/1.45 var(--serif); }
+    .prompt button { border: 0; background: none; color: var(--green); padding: 0; font-size: 11px; font-weight: 700; }
+    .prompt button:hover { text-decoration: underline; }
+    .tip { display: flex; gap: 10px; align-items: start; padding: 13px 0; color: var(--muted); font-size: 11px; line-height: 1.55; border-bottom: 1px solid var(--line); }
+    .tip svg { width: 15px; flex: 0 0 auto; color: var(--orange); }
+    .empty { color: var(--muted); padding: 36px 10px; text-align: center; }
+    .modal-backdrop { position: fixed; inset: 0; z-index: 5; padding: 20px; background: rgba(22,31,27,.45); display: none; align-items: center; justify-content: center; }
+    .modal-backdrop.open { display: flex; }
+    .modal { width: min(100%, 460px); max-height: 94vh; overflow-y: auto; background: var(--white); border-radius: 7px; padding: 25px; box-shadow: 0 16px 70px rgba(0,0,0,.2); animation: appear .2s ease both; }
+    .modal-head { display: flex; justify-content: space-between; align-items: start; margin-bottom: 18px; }
+    .modal h2 { font: 600 25px var(--serif); margin: 0 0 5px; }
+    .modal-head p { color: var(--muted); margin: 0; font-size: 12px; }
+    .close-button { border: 0; background: transparent; font-size: 22px; color: var(--muted); padding: 0 4px; }
+    .field { margin-bottom: 13px; }
+    .field label { display: block; font-size: 11px; font-weight: 700; margin-bottom: 6px; }
+    .field input, .field textarea, .field select { width: 100%; padding: 10px 11px; border: 1px solid var(--line); border-radius: 4px; background: white; outline: 0; color: var(--ink); }
+    .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--green); box-shadow: 0 0 0 2px rgba(47,107,85,.12); }
+    .field textarea { min-height: 76px; resize: vertical; }
+    .field-hint { display: block; color: var(--muted); font-size: 10px; margin-top: 5px; }
+    .form-actions { display: flex; justify-content: space-between; margin-top: 19px; }
+    .delete-button { border: 0; color: #a44c3d; background: transparent; font-weight: 700; }
+    .toast { position: fixed; z-index: 8; bottom: 22px; left: 50%; transform: translate(-50%, 20px); opacity: 0; background: var(--ink); color: white; border-radius: 5px; padding: 11px 15px; font-size: 12px; transition: .2s ease; pointer-events: none; }
+    .toast.show { transform: translate(-50%,0); opacity: 1; }
+    @media (max-width: 800px) {
+      .topbar { padding: 0 20px; }
+      .shell { padding: 25px 20px 50px; }
+      .content { grid-template-columns: minmax(0,1fr) 225px; gap: 24px; }
+      .side { padding-left: 18px; }
+      .cover { min-height: 235px; }
+    }
+    @media (max-width: 620px) {
+      .topbar { height: 60px; padding: 0 16px; }
+      .brand { font-size: 14px; }
+      .top-actions .button-quiet { display: none; }
+      .top-actions .button { min-height: 37px; padding: 0 11px; font-size: 12px; }
+      .shell { padding: 23px 16px 42px; }
+      .trip-head { display: block; margin-bottom: 17px; }
+      h1 { font-size: 32px; }
+      .trip-meta { margin-top: 13px; }
+      .cover { min-height: 220px; background-position: 55% center; }
+      .cover-copy { padding: 22px; }
+      .cover-copy h2 { font-size: 26px; }
+      .cover-pin { width: 38px; height: 38px; right: 14px; bottom: 14px; }
+      .stats { margin-bottom: 22px; }
+      .stat { padding: 12px 9px; gap: 7px; flex-direction: column; align-items: flex-start; }
+      .stat-icon { width: 28px; height: 28px; }
+      .stat-num { font-size: 16px; }
+      .stat-label { font-size: 10px; }
+      .content { display: flex; flex-direction: column; gap: 28px; }
+      .main-list { width: 100%; }
+      .side { width: 100%; border-left: 0; border-top: 1px solid var(--line); padding: 20px 0 0; }
+      .section-top { align-items: flex-start; flex-wrap: wrap; }
+      .section-top h2 { font-size: 21px; }
+      .search { width: 100%; order: 2; }
+      .place { grid-template-columns: 48px minmax(0,1fr) auto; gap: 10px; min-height: 92px; }
+      .place-icon { width: 46px; height: 46px; font-size: 20px; }
+      .place h3 { font-size: 14px; }
+      .place-tag { font-size: 8px; }
+      .place-detail { font-size: 10px; }
+      .place-actions { gap: 0; }
+      .icon-button { width: 30px; height: 32px; }
+      .tip { padding: 10px 0; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark"><span>↗</span></div> Trip Together</div>
+    <div class="top-actions">
+      <button class="button button-quiet" id="exportButton" title="Download a backup of this trip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v3h14v-3"/></svg>Backup</button>
+      <button class="button button-green" id="shareButton"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/><path d="M8 12h8m-4-4v8"/></svg>Share trip</button>
+    </div>
+  </header>
+  <main class="shell">
+    <section class="trip-head">
+      <div><div class="eyebrow">The group trip board</div><h1 id="tripTitle">Lisbon, together</h1><p class="trip-sub" id="tripSubtitle">A few good ideas from everyone. More welcome.</p></div>
+      <div class="trip-meta"><div class="avatars" aria-label="Trip contributors"><span class="avatar">M</span><span class="avatar">J</span><span class="avatar">A</span></div><span id="contributorLabel">Your travel crew</span></div>
+    </section>
+    <section class="cover" aria-label="Lisbon travel photo">
+      <div class="cover-copy"><p id="coverEyebrow">Portugal · City break</p><h2 id="coverTitle">A little Lisbon<br>goes a long way.</h2><span id="coverNote">Save the places you don't want to forget.</span></div>
+      <a class="cover-pin" id="cityMapLink" href="https://www.google.com/maps/search/?api=1&query=Lisbon%2C+Portugal" target="_blank" rel="noopener" aria-label="Open Lisbon in Google Maps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></a>
+    </section>
+    <section class="stats" aria-label="Places by category">
+      <div class="stat"><div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10h18M5 10v10m14-10v10M3 20h18M4 10l2-6h12l2 6M9 10v4m6-4v4"/></svg></div><div><div class="stat-num" id="eatCount">0</div><div class="stat-label">Places to eat</div></div></div>
+      <div class="stat"><div class="stat-icon" style="background:#f4e9e2;color:#a35c43"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8h16l-1 12H5L4 8Zm4 0a4 4 0 0 1 8 0"/><path d="M9 12v4m6-4v4"/></svg></div><div><div class="stat-num" id="shopCount">0</div><div class="stat-label">Shops & markets</div></div></div>
+      <div class="stat"><div class="stat-icon" style="background:#f5edcf;color:#967427"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z"/></svg></div><div><div class="stat-num" id="visitCount">0</div><div class="stat-label">Worth a visit</div></div></div>
+    </section>
+    <div class="content">
+      <section class="main-list">
+        <div class="section-top"><h2>Our little list <span class="count-label" id="totalLabel"></span></h2><label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input id="searchInput" type="search" placeholder="Find a place..." aria-label="Search places"></label></div>
+        <div class="filters" role="tablist" aria-label="Place categories">
+          <button class="filter active" data-filter="all" role="tab">Everything</button><button class="filter" data-filter="eat" role="tab">Eat</button><button class="filter" data-filter="shop" role="tab">Shop</button><button class="filter" data-filter="visit" role="tab">Visit</button>
+        </div>
+        <div class="place-list" id="placeList"></div>
+      </section>
+      <aside class="side">
+        <h3>Pass the good word</h3><p class="side-intro">Everyone has a good tip. Add yours and keep all the little discoveries in one place.</p>
+        <div class="prompt"><p>“A friend told me about this tiny place...”</p><button id="addPromptButton">Add a recommendation <span aria-hidden="true">↗</span></button></div>
+        <div class="tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/></svg><span>Saved in this browser. Share a WhatsApp summary so the group can find every spot on the map.</span></div>
+        <div class="tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18m9-9H3"/><circle cx="12" cy="12" r="9"/></svg><span>Anyone can add a place here. Tap the plus, choose a category, and paste a Google Maps link if you have one.</span></div>
+      </aside>
+    </div>
+  </main>
+  <div class="modal-backdrop" id="modalBackdrop" role="presentation">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head"><div><h2 id="modalTitle">Add a good one</h2><p>Share a place the group will love.</p></div><button class="close-button" id="closeModal" aria-label="Close">×</button></div>
+      <form id="placeForm">
+        <div class="field"><label for="placeName">Place name *</label><input id="placeName" name="name" required maxlength="80" placeholder="e.g. That lovely bakery on the corner"></div>
+        <div class="field"><label for="placeCategory">What kind of place?</label><select id="placeCategory" name="category"><option value="eat">Somewhere to eat</option><option value="shop">Shopping or market</option><option value="visit">Worth a visit</option></select></div>
+        <div class="field"><label for="placeArea">Area or neighborhood</label><input id="placeArea" name="area" maxlength="60" placeholder="e.g. Alfama"></div>
+        <div class="field"><label for="placeNote">Why should we go?</label><textarea id="placeNote" name="note" maxlength="180" placeholder="What should we order? Best time to go? Any little tip..."></textarea></div>
+        <div class="field"><label for="placeMap">Google Maps link <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input id="placeMap" name="map" type="url" placeholder="Paste a Maps link, or we'll make one"><span class="field-hint">No link? We'll make a Google Maps search for the place.</span></div>
+        <div class="field"><label for="placeBy">Your name <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input id="placeBy" name="by" maxlength="30" placeholder="Who recommended it?"></div>
+        <div class="form-actions"><button type="button" class="delete-button" id="deletePlace" hidden>Remove place</button><button type="submit" class="button button-green" id="savePlace">Add to the list</button></div>
+      </form>
+    </section>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script>
+    const seedPlaces = [
+      { id: 'p1', name: 'Time Out Market', category: 'eat', area: 'Cais do Sodre', note: 'So many choices under one roof. Go hungry.', by: 'Maya', map: '' },
+      { id: 'p2', name: 'Pastéis de Belém', category: 'eat', area: 'Belem', note: 'The original custard tarts. Still warm if you get lucky.', by: 'Jamie', map: '' },
+      { id: 'p3', name: 'A Vida Portuguesa', category: 'shop', area: 'Chiado', note: 'Beautiful local soaps, tins and little gifts.', by: 'Alex', map: '' },
+      { id: 'p4', name: 'Feira da Ladra', category: 'shop', area: 'Alfama', note: 'Flea market on Tuesdays and Saturdays. Bring cash.', by: 'Maya', map: '' },
+      { id: 'p5', name: 'Miradouro da Senhora do Monte', category: 'visit', area: 'Graça', note: 'A sunset view worth the uphill walk.', by: 'Jamie', map: '' },
+      { id: 'p6', name: 'Jerónimos Monastery', category: 'visit', area: 'Belem', note: 'Go early; the cloister is the best bit.', by: 'Alex', map: '' }
+    ];
+    const categoryNames = { eat: 'Eat', shop: 'Shop', visit: 'Visit' };
+    const categoryIcons = { eat: '🍴', shop: '🛍️', visit: '📍' };
+    const categoryEmoji = { eat: '🍴', shop: '🛍️', visit: '✨' };
+    const storageKey = 'trip-together-lisbon-v1';
+    let places = loadPlaces();
+    let activeFilter = 'all';
+    let editingId = null;
+    let toastTimer;
+
+    function loadPlaces() {
+      try {
+        const saved = localStorage.getItem(storageKey);
+        return saved ? JSON.parse(saved) : seedPlaces;
+      } catch { return seedPlaces; }
+    }
+    function savePlaces() {
+      try { localStorage.setItem(storageKey, JSON.stringify(places)); }
+      catch { showToast('Could not save on this device. Try downloading a backup.'); }
+    }
+    function mapsUrl(place) {
+      if (place.map) return place.map;
+      return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([place.name, place.area, 'Lisbon'].filter(Boolean).join(', '));
+    }
+    function safeText(value) {
+      return String(value || '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+    }
+    function render() {
+      const query = document.getElementById('searchInput').value.trim().toLowerCase();
+      const shown = places.filter(place => (activeFilter === 'all' || place.category === activeFilter) && (!query || `${place.name} ${place.area} ${place.note} ${place.by}`.toLowerCase().includes(query)));
+      document.getElementById('placeList').innerHTML = shown.length ? shown.map((place, index) => `
+        <article class="place" style="animation-delay:${Math.min(index * 45, 240)}ms">
+          <div class="place-icon ${place.category}">${categoryIcons[place.category]}</div>
+          <div class="place-info"><div class="place-title-line"><h3 title="${safeText(place.name)}">${safeText(place.name)}</h3><span class="place-tag ${place.category}">${categoryNames[place.category]}</span></div><p class="place-detail">${safeText(place.area || 'Lisbon')}${place.note ? `<span class="dot">·</span>${safeText(place.note)}` : ''}${place.by ? `<span class="dot">·</span>via ${safeText(place.by)}` : ''}</p></div>
+          <div class="place-actions"><a class="icon-button" href="${safeText(mapsUrl(place))}" target="_blank" rel="noopener" title="Open in Google Maps" aria-label="Open ${safeText(place.name)} in Google Maps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></a><button class="icon-button edit-place" data-id="${safeText(place.id)}" title="Edit place" aria-label="Edit ${safeText(place.name)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m14 5 5 5M4 20l4.2-.8L20 7.4 16.6 4 4.8 15.8 4 20Z"/></svg></button></div>
+        </article>`).join('') : '<div class="empty">Nothing here yet. Add the first good tip.</div>';
+      document.querySelectorAll('.edit-place').forEach(button => button.addEventListener('click', () => openModal(button.dataset.id)));
+      const count = key => places.filter(place => place.category === key).length;
+      document.getElementById('eatCount').textContent = count('eat');
+      document.getElementById('shopCount').textContent = count('shop');
+      document.getElementById('visitCount').textContent = count('visit');
+      document.getElementById('totalLabel').textContent = `${places.length} ${places.length === 1 ? 'place' : 'places'}`;
+    }
+    function openModal(id) {
+      editingId = id || null;
+      const place = id ? places.find(item => item.id === id) : null;
+      const form = document.getElementById('placeForm');
+      form.reset();
+      if (place) {
+        form.elements.name.value = place.name;
+        form.elements.category.value = place.category;
+        form.elements.area.value = place.area || '';
+        form.elements.note.value = place.note || '';
+        form.elements.map.value = place.map || '';
+        form.elements.by.value = place.by || '';
+      }
+      document.getElementById('modalTitle').textContent = place ? 'Edit this place' : 'Add a good one';
+      document.getElementById('savePlace').textContent = place ? 'Save changes' : 'Add to the list';
+      document.getElementById('deletePlace').hidden = !place;
+      document.getElementById('modalBackdrop').classList.add('open');
+      setTimeout(() => document.getElementById('placeName').focus(), 50);
+    }
+    function closeModal() { document.getElementById('modalBackdrop').classList.remove('open'); }
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+    }
+    function shareText() {
+      const title = document.getElementById('tripTitle').textContent;
+      const lines = [`✈️ ${title} — our group tips`, ''];
+      for (const category of ['eat', 'shop', 'visit']) {
+        const items = places.filter(place => place.category === category);
+        if (!items.length) continue;
+        lines.push(`${categoryEmoji[category]} ${categoryNames[category].toUpperCase()}`);
+        items.forEach(place => {
+          const detail = [place.area, place.note, place.by ? `via ${place.by}` : ''].filter(Boolean).join(' · ');
+          lines.push(`• ${place.name}${detail ? ` — ${detail}` : ''}`);
+          lines.push(mapsUrl(place));
+        });
+        lines.push('');
+      }
+      return lines.join('\n').trim();
+    }
+    document.getElementById('placeForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const data = Object.fromEntries(new FormData(form));
+      if (data.map && !/^https?:\/\//i.test(data.map)) { showToast('Please paste a full Google Maps link.'); return; }
+      const record = { id: editingId || `p${Date.now()}`, name: data.name.trim(), category: data.category, area: data.area.trim(), note: data.note.trim(), map: data.map.trim(), by: data.by.trim() };
+      if (editingId) places = places.map(place => place.id === editingId ? record : place);
+      else places.unshift(record);
+      savePlaces(); render(); closeModal(); showToast(editingId ? 'Place updated.' : 'Added to the trip list.');
+    });
+    document.getElementById('deletePlace').addEventListener('click', () => {
+      if (!editingId) return;
+      places = places.filter(place => place.id !== editingId);
+      savePlaces(); render(); closeModal(); showToast('Place removed.');
+    });
+    document.getElementById('closeModal').addEventListener('click', closeModal);
+    document.getElementById('modalBackdrop').addEventListener('click', event => { if (event.target.id === 'modalBackdrop') closeModal(); });
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeModal(); });
+    document.getElementById('addPromptButton').addEventListener('click', () => openModal());
+    document.querySelectorAll('.filter').forEach(button => button.addEventListener('click', () => {
+      document.querySelectorAll('.filter').forEach(item => item.classList.remove('active'));
+      button.classList.add('active'); activeFilter = button.dataset.filter; render();
+    }));
+    document.getElementById('searchInput').addEventListener('input', render);
+    document.getElementById('shareButton').addEventListener('click', async () => {
+      const message = shareText();
+      if (navigator.share) {
+        try { await navigator.share({ title: document.getElementById('tripTitle').textContent, text: message }); return; }
+        catch (error) { if (error.name === 'AbortError') return; }
+      }
+      const whatsappUrl = 'https://wa.me/?text=' + encodeURIComponent(message);
+      window.open(whatsappUrl, '_blank', 'noopener');
+    });
+    document.getElementById('exportButton').addEventListener('click', () => {
+      const backup = { title: document.getElementById('tripTitle').textContent, places, exportedAt: new Date().toISOString() };
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }));
+      link.download = 'trip-together-backup.json'; link.click(); URL.revokeObjectURL(link.href);
+      showToast('Trip backup downloaded.');
+    });
+    render();
+  </script>
+</body>
+</html>
