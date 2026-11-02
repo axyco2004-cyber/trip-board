@@ -255,8 +255,10 @@
       </header>
       <div class="hotel-parts" id="destinationHotels"></div>
       <details class="guide-editor" style="margin-top:16px">
-        <summary>Edit destination photo and map</summary>
+        <summary>Edit destination menu, photo and map</summary>
         <form id="destinationForm">
+          <div class="field"><label for="destinationNameInput">Destination menu name *</label><input id="destinationNameInput" name="name" required maxlength="60" placeholder="Others"></div>
+          <div class="field"><label for="destinationCountryInput">Country or area</label><input id="destinationCountryInput" name="country" maxlength="60" placeholder="Optional"></div>
           <div class="field"><label for="destinationPhotoInput">Photo URL <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input id="destinationPhotoInput" name="photoUrl" type="url" placeholder="https://..."><span class="field-hint">Update the photo credit below when you replace the image.</span></div>
           <div class="field"><label for="destinationCreditInput">Photo credit <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input id="destinationCreditInput" name="photoCreditLabel" maxlength="120" placeholder="Photographer and license"></div>
           <div class="field"><label for="destinationCreditUrlInput">Photo credit link <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input id="destinationCreditUrlInput" name="photoCreditUrl" type="url" placeholder="https://..."></div>
@@ -336,14 +338,7 @@
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script>
-    const seedPlaces = [
-      { id: 'p1', name: 'Time Out Market', category: 'eat', area: 'Cais do Sodre', note: 'So many choices under one roof. Go hungry.', by: 'Maya', map: '' },
-      { id: 'p2', name: 'Pastéis de Belém', category: 'eat', area: 'Belem', note: 'The original custard tarts. Still warm if you get lucky.', by: 'Jamie', map: '' },
-      { id: 'p3', name: 'A Vida Portuguesa', category: 'shop', area: 'Chiado', note: 'Beautiful local soaps, tins and little gifts.', by: 'Alex', map: '' },
-      { id: 'p4', name: 'Feira da Ladra', category: 'shop', area: 'Alfama', note: 'Flea market on Tuesdays and Saturdays. Bring cash.', by: 'Maya', map: '' },
-      { id: 'p5', name: 'Miradouro da Senhora do Monte', category: 'visit', area: 'Graça', note: 'A sunset view worth the uphill walk.', by: 'Jamie', map: '' },
-      { id: 'p6', name: 'Jerónimos Monastery', category: 'visit', area: 'Belem', note: 'Go early; the cloister is the best bit.', by: 'Alex', map: '' }
-    ];
+    const seedPlaces = [];
     const categoryNames = { eat: 'Eat', shop: 'Shop', visit: 'Visit' };
     const categoryIcons = { eat: '🍴', shop: '🛍️', visit: '📍' };
     const categoryEmoji = { eat: '🍴', shop: '🛍️', visit: '✨' };
@@ -351,7 +346,7 @@
     const destinationStorageKey = 'ca2026-destination-guides-v1';
     const crewStorageKey = 'ca2026-travel-crew-v1';
     const sessionPostsStorageKey = 'ca2026-session-posts-v1';
-    const defaultCrew = ['Maya', 'Jamie', 'Alex'];
+    const defaultCrew = ['SAS CA 26', '- Inga', '~ Pernille', '~ Samina', '~ Johan', '~ Anna', '~ Maren', '~ Tilde', '~ Charlotte', '- Liviu', '~ Natacha', '~ Joh', '- Giada', '~ My', '- Gonçalo', '~ Alexandru', '~ Jona V', '~ Catalina', '~ Yonaikel', '~ Berta', '~ Ellynor'];
     const destinations = [
       { id: 'gothenburg', name: 'Gothenburg', country: 'Sweden', photoUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/Karlatornet_along_with_Gothenburg_skyline..jpg/960px-Karlatornet_along_with_Gothenburg_skyline..jpg', photoCreditLabel: 'Axadem · CC BY-SA 4.0', photoCreditUrl: 'https://commons.wikimedia.org/wiki/File:Karlatornet_along_with_Gothenburg_skyline..jpg' },
       { id: 'gdansk', name: 'Gdansk', country: 'Poland', photoUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/21/Gdansk_Gora_Gradowa_2.jpg/960px-Gdansk_Gora_Gradowa_2.jpg', photoCreditLabel: 'Andrzej Otrębski · CC BY-SA 3.0', photoCreditUrl: 'https://commons.wikimedia.org/wiki/File:Gdansk_Gora_Gradowa_2.jpg' },
@@ -359,6 +354,26 @@
       { id: 'helsinki', name: 'Helsinki', country: 'Finland', photoUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/Helsinki_Cathedral_2019.jpg/960px-Helsinki_Cathedral_2019.jpg', photoCreditLabel: 'Farzad Abedi · CC BY-SA 4.0', photoCreditUrl: 'https://commons.wikimedia.org/wiki/File:Helsinki_Cathedral_2019.jpg' },
       { id: 'stockholm', name: 'Stockholm', country: 'Sweden', photoUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/14/Stockholm_city_skyline_and_waterfront_at_night_%28April_2016%29.jpg/960px-Stockholm_city_skyline_and_waterfront_at_night_%28April_2016%29.jpg', photoCreditLabel: 'Micael Widell · CC BY 3.0', photoCreditUrl: 'https://commons.wikimedia.org/wiki/File:Stockholm_city_skyline_and_waterfront_at_night_(April_2016).jpg' },
       { id: 'others', name: 'Others', country: '', mapSearch: 'Europe', photoUrl: '', photoCreditLabel: '', photoCreditUrl: '' }
+    ];
+    const migratedDestinationData = {
+      selectedId: 'others',
+      guides: {
+        gothenburg: {
+          hotels: [
+            { name: 'Hotel Scandic Landvetter', location: '', lists: { eat: ['Scandic restaurant: 200-300 sek / 90 sek breakfast', 'MAX int the airport', "Mac Donald's 20 min walk or bike 7 min"], visit: [], shopping: [], tips: [] } },
+            { name: 'Scandic City', location: '', lists: { eat: [], visit: [], shopping: [], tips: [] } }
+          ]
+        },
+        gdansk: {
+          hotels: [
+            { name: 'Hotel Mercure Gdańsk Stare Miasto', location: 'https://www.google.com/maps/place/Hotel+Mercure+Gda%C5%84sk+Stare+Miasto/@54.3560525,18.6514179,17z/data=!3m1!4b1!4m9!3m8!1s0x46fd7309d29867e9:0xf1a994dc5ea00271!5m2!4m1!1i2!8m2!3d54.3560525!4d18.6514179!16s%2Fg%2F121j20kz?entry=ttu&g_ep=EgoyMDI2MTAyOC4wIKXMDSoASAFQAw%3D%3D', lists: { eat: ['Bakery nearby', 'Food court: 7 min walking: Plac Dominikański 1, 80-884 Gdańsk'], visit: ['Old town'], shopping: ['Forum mall 19 min walking: Jana Heweliusza 22, 80-890 Gdańsk,', 'Madisson galleria 4 min walking: Rajska 10, 80-850 Gdańsk, Poland'], tips: ['Good coffee at the hotel'] } },
+            { name: 'N/A', location: '', lists: { eat: [], visit: [], shopping: [], tips: [] } }
+          ]
+        }
+      }
+    };
+    const migratedSessionPosts = [
+      { id: '1793624724642-cnql0m', author: 'Liviu', type: 'tip', text: 'Leave comments here pls!', destinationId: 'gdansk', hotel: 'general', createdAt: '2026-11-02T13:05:24.642Z' }
     ];
     const defaultDestinationId = 'gothenburg';
     let toastTimer;
@@ -440,7 +455,7 @@
     function loadSessionPosts() {
       try {
         const saved = localStorage.getItem(sessionPostsStorageKey);
-        if (saved === null) return [];
+        if (saved === null) return migratedSessionPosts.map(post => ({ ...post }));
         const parsed = JSON.parse(saved);
         if (!Array.isArray(parsed)) throw new Error('Invalid saved session posts.');
         return parsed.filter(post => post && typeof post === 'object'
@@ -467,7 +482,6 @@
         container.append(empty);
         return;
       }
-      const destinationNames = new Map(destinations.map(destination => [destination.id, destination.name]));
       [...sessionPosts].reverse().forEach(post => {
         const article = document.createElement('article');
         article.className = 'session-post';
@@ -484,7 +498,7 @@
         const hotelLabel = post.hotel === 'general'
           ? 'General'
           : destinationState.guides[post.destinationId]?.hotels[Number(post.hotel) - 1]?.name || `Hotel ${post.hotel}`;
-        context.textContent = `${destinationNames.get(post.destinationId)} · ${hotelLabel}`;
+        context.textContent = `${destinationName(post.destinationId)} · ${hotelLabel}`;
         const time = document.createElement('time');
         time.className = 'session-post-time';
         time.dateTime = post.createdAt;
@@ -522,7 +536,7 @@
       destinations.forEach(destination => {
         const option = document.createElement('option');
         option.value = destination.id;
-        option.textContent = destination.name;
+        option.textContent = destinationName(destination.id);
         select.append(option);
       });
       select.value = selectedId;
@@ -548,6 +562,8 @@
     }
     function defaultGuide(destination) {
       return {
+        name: destination.name,
+        country: destination.country,
         hotels: [1, 2].map(() => ({ location: '', lists: { eat: [], visit: [], shopping: [], tips: [] } })),
         photoUrl: destination.photoUrl,
         photoCreditLabel: destination.photoCreditLabel,
@@ -562,8 +578,7 @@
       };
       try {
         const saved = localStorage.getItem(destinationStorageKey);
-        if (!saved) return state;
-        const parsed = JSON.parse(saved);
+        const parsed = saved === null ? migratedDestinationData : JSON.parse(saved);
         if (!parsed || typeof parsed !== 'object') throw new Error('Invalid destination guide data.');
         if (typeof parsed.selectedId === 'string') state.selectedId = parsed.selectedId;
         for (const destination of destinations) {
@@ -577,6 +592,8 @@
             : { visit: legacyVisitItems, tips: Array.isArray(guide.tips) ? guide.tips.filter(tip => typeof tip === 'string') : [] };
           const savedHotels = Array.isArray(guide.hotels) ? guide.hotels : [];
           state.guides[destination.id] = {
+            name: typeof guide.name === 'string' && guide.name.trim() ? guide.name.trim() : defaults.name,
+            country: typeof guide.country === 'string' ? guide.country.trim() : defaults.country,
             hotels: defaults.hotels.map((hotel, index) => {
               const savedHotel = savedHotels[index];
               const lists = savedHotel?.lists && typeof savedHotel.lists === 'object'
@@ -617,17 +634,29 @@
       }
     }
     function activeGuide() { return destinationState.guides[activeDestinationId]; }
+    function destinationName(destinationId) {
+      return destinationState.guides[destinationId]?.name || destinations.find(destination => destination.id === destinationId)?.name || '';
+    }
+    function destinationCountry(destinationId) {
+      return destinationState.guides[destinationId]?.country ?? destinations.find(destination => destination.id === destinationId)?.country ?? '';
+    }
+    function activeDestinationName() { return destinationName(activeDestinationId); }
+    function activeDestinationCountry() { return destinationCountry(activeDestinationId); }
     function destinationMapUrl(destination, guide) {
-      return guide.mapsUrl || 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(destination.mapSearch || [destination.name, destination.country].filter(Boolean).join(', '));
+      const location = guide.name !== destination.name || guide.country !== destination.country
+        ? [guide.name, guide.country].filter(Boolean).join(', ')
+        : destination.mapSearch || [guide.name, guide.country].filter(Boolean).join(', ');
+      return guide.mapsUrl || 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(location);
     }
     function renderDestinationMenu() {
       document.getElementById('destinationGrid').innerHTML = destinations.map(destination => {
         const guide = destinationState.guides[destination.id];
+        const name = destinationName(destination.id);
         const photo = guide.photoUrl ? `<img src="${safeText(guide.photoUrl)}" alt="" loading="lazy" decoding="async">` : '';
         const credit = guide.photoCreditLabel
           ? `<p class="photo-credit">Photo: ${guide.photoCreditUrl ? `<a href="${safeText(guide.photoCreditUrl)}" target="_blank" rel="noopener noreferrer">${safeText(guide.photoCreditLabel)}</a>` : safeText(guide.photoCreditLabel)}</p>`
           : '';
-        return `<article class="destination-item"><button class="destination-card" type="button" data-destination="${destination.id}" aria-pressed="${destination.id === activeDestinationId}" aria-label="Show ${safeText(destination.name)} guide">${photo}<span class="destination-name">${safeText(destination.name)}</span></button>${credit}</article>`;
+        return `<article class="destination-item"><button class="destination-card" type="button" data-destination="${destination.id}" aria-pressed="${destination.id === activeDestinationId}" aria-label="Show ${safeText(name)} guide">${photo}<span class="destination-name">${safeText(name)}</span></button>${credit}</article>`;
       }).join('');
       document.querySelectorAll('.destination-card').forEach(button => button.addEventListener('click', () => {
         if (button.dataset.destination === activeDestinationId || !saveHotelGuides(false) || !saveCurrentGuide(false)) return;
@@ -642,7 +671,7 @@
     }
     function renderDestinationGuide() {
       const guide = activeGuide();
-      document.getElementById('guideTitle').textContent = [activeDestination.name, activeDestination.country].filter(Boolean).join(', ');
+      document.getElementById('guideTitle').textContent = [activeDestinationName(), activeDestinationCountry()].filter(Boolean).join(', ');
       const renderList = (elementId, items, placeholder) => {
         const list = document.getElementById(elementId);
         list.replaceChildren();
@@ -703,8 +732,10 @@
       }));
       const mapLink = document.getElementById('destinationMapLink');
       mapLink.href = destinationMapUrl(activeDestination, guide);
-      mapLink.setAttribute('aria-label', `Open ${activeDestination.name} in Google Maps`);
+      mapLink.setAttribute('aria-label', `Open ${activeDestinationName()} in Google Maps`);
       const form = document.getElementById('destinationForm');
+      form.elements.name.value = guide.name;
+      form.elements.country.value = guide.country;
       form.elements.photoUrl.value = guide.photoUrl;
       form.elements.photoCreditLabel.value = guide.photoCreditLabel;
       form.elements.photoCreditUrl.value = guide.photoCreditUrl;
@@ -741,7 +772,7 @@
       renderDestinationGuide();
       renderSessionHotelOptions();
       renderSessionPosts();
-      if (announce) showToast(`${activeDestination.name} hotel lists saved on this device.`);
+      if (announce) showToast(`${activeDestinationName()} hotel lists saved on this device.`);
       return true;
     }
     function isValidHotelLocation(location) {
@@ -762,10 +793,15 @@
       const photoUrl = normalizeWebUrl(data.photoUrl.trim());
       const photoCreditUrl = normalizeWebUrl(data.photoCreditUrl.trim());
       const mapsUrl = normalizeWebUrl(data.mapsUrl.trim());
+      const name = data.name.trim();
+      const country = data.country.trim();
+      if (!name) { showToast('Add a name for this destination menu.'); return false; }
       if (data.photoUrl.trim() && !photoUrl) { showToast('Enter a full http(s) photo URL.'); return false; }
       if (data.photoCreditUrl.trim() && !photoCreditUrl) { showToast('Enter a full http(s) photo credit link.'); return false; }
       if (data.mapsUrl.trim() && !mapsUrl) { showToast('Enter a full http(s) Google Maps link.'); return false; }
       const nextGuide = {
+        name,
+        country,
         hotels: activeGuide().hotels,
         photoUrl,
         photoCreditLabel: data.photoCreditLabel.trim(),
@@ -782,12 +818,15 @@
       }
       renderDestinationMenu();
       renderDestinationGuide();
-      if (announce) showToast(`${activeDestination.name} guide saved on this device.`);
+      renderSessionDestinationOptions();
+      renderSessionPosts();
+      render();
+      if (announce) showToast(`${activeDestinationName()} guide saved on this device.`);
       return true;
     }
     function mapsUrl(place) {
       if (place.map) return place.map;
-      return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([place.name, place.area, activeDestination.name, activeDestination.country].filter(Boolean).join(', '));
+      return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([place.name, place.area, activeDestinationName(), activeDestinationCountry()].filter(Boolean).join(', '));
     }
     function safeText(value) {
       return String(value || '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -798,7 +837,7 @@
       document.getElementById('placeList').innerHTML = shown.length ? shown.map((place, index) => `
         <article class="place" style="animation-delay:${Math.min(index * 45, 240)}ms">
           <div class="place-icon ${place.category}">${categoryIcons[place.category]}</div>
-          <div class="place-info"><div class="place-title-line"><h3 title="${safeText(place.name)}">${safeText(place.name)}</h3><span class="place-tag ${place.category}">${categoryNames[place.category]}</span></div><p class="place-detail">${safeText(place.area || activeDestination.name)}${place.note ? `<span class="dot">·</span>${safeText(place.note)}` : ''}${place.by ? `<span class="dot">·</span>via ${safeText(place.by)}` : ''}</p></div>
+          <div class="place-info"><div class="place-title-line"><h3 title="${safeText(place.name)}">${safeText(place.name)}</h3><span class="place-tag ${place.category}">${categoryNames[place.category]}</span></div><p class="place-detail">${safeText(place.area || activeDestinationName())}${place.note ? `<span class="dot">·</span>${safeText(place.note)}` : ''}${place.by ? `<span class="dot">·</span>via ${safeText(place.by)}` : ''}</p></div>
           <div class="place-actions"><a class="icon-button" href="${safeText(mapsUrl(place))}" target="_blank" rel="noopener" title="Open in Google Maps" aria-label="Open ${safeText(place.name)} in Google Maps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></a><button class="icon-button edit-place" data-id="${safeText(place.id)}" title="Edit place" aria-label="Edit ${safeText(place.name)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m14 5 5 5M4 20l4.2-.8L20 7.4 16.6 4 4.8 15.8 4 20Z"/></svg></button></div>
         </article>`).join('') : '<div class="empty">Nothing here yet. Add the first good tip.</div>';
       document.querySelectorAll('.edit-place').forEach(button => button.addEventListener('click', () => openModal(button.dataset.id)));
