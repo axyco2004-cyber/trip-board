@@ -3,7 +3,6 @@ const { createHash, randomUUID, timingSafeEqual } = require('node:crypto');
 const COMMENTS_KEY = 'ca2026:session-posts';
 const RATE_LIMIT = 40;
 const RATE_WINDOW_SECONDS = 3600;
-const MAX_POSTS = 200;
 const VALID_DESTINATIONS = new Set(['gothenburg', 'gdansk', 'oslo', 'helsinki', 'stockholm', 'others']);
 
 function setHeaders(res) {
@@ -120,8 +119,7 @@ module.exports = async function handler(req, res) {
       const posts = records
         .map(({ record }) => postFromRecord(record))
         .filter(post => VALID_DESTINATIONS.has(post.destinationId))
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        .slice(0, MAX_POSTS);
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       res.setHeader('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=20');
       return res.status(200).json({ posts });
     }
@@ -141,7 +139,6 @@ module.exports = async function handler(req, res) {
         .map(({ post, ownerTokenHash }) => JSON.stringify({ ...post, ownerTokenHash }));
       if (newRecords.length) {
         await redisCommand('LPUSH', COMMENTS_KEY, ...newRecords);
-        await redisCommand('LTRIM', COMMENTS_KEY, 0, MAX_POSTS - 1);
       }
       return res.status(201).json({ posts: normalizedPosts.map(({ post }) => post) });
     }

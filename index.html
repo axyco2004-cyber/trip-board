@@ -523,7 +523,7 @@
     }
     function saveSyncedSessionPostIds() {
       try {
-        localStorage.setItem(syncedSessionPostIdsStorageKey, JSON.stringify([...syncedSessionPostIds].slice(-500)));
+        localStorage.setItem(syncedSessionPostIdsStorageKey, JSON.stringify([...syncedSessionPostIds]));
       } catch {
         showToast('Could not save comment sync status on this device.');
       }
