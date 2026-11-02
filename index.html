@@ -277,7 +277,7 @@
     </section>
     <section class="session-board" aria-labelledby="sessionHeading">
       <h2 id="sessionHeading">Tips &amp; comments</h2>
-      <p class="session-intro">Share a tip or comment with the crew. Posts are saved in this browser only and are not visible on other people's devices.</p>
+      <p class="session-intro">Share a tip or comment with the crew. Posts sync across devices and are visible to everyone with the trip link.</p>
       <form class="session-form" id="sessionForm">
         <div class="field"><label for="sessionAuthor">Your name *</label><input id="sessionAuthor" name="author" required maxlength="50" placeholder="Name from the crew"></div>
         <div class="field"><label for="sessionType">Post type</label><select id="sessionType" name="type"><option value="tip">Tip</option><option value="comment">Comment</option></select></div>
@@ -354,6 +354,9 @@
     const destinationStorageKey = 'ca2026-destination-guides-v1';
     const crewStorageKey = 'ca2026-travel-crew-v1';
     const sessionPostsStorageKey = 'ca2026-session-posts-v1';
+    const sessionPostTokensStorageKey = 'ca2026-session-post-tokens-v1';
+    const syncedSessionPostIdsStorageKey = 'ca2026-synced-session-post-ids-v1';
+    const sessionPostsApiUrl = 'https://trip-board-eta.vercel.app/api/comments';
     const publicTripUrl = 'https://trip-board-eta.vercel.app/';
     const defaultCrew = ['SAS CA 26', '- Inga', '~ Pernille', '~ Samina', '~ Johan', '~ Anna', '~ Maren', '~ Tilde', '~ Charlotte', '- Liviu', '~ Natacha', '~ Joh', '- Giada', '~ My', '- Gonçalo', '~ Alexandru', '~ Jona V', '~ Catalina', '~ Yonaikel', '~ Berta', '~ Ellynor'];
     const destinations = [
@@ -389,6 +392,10 @@
     let places = loadPlaces();
     let crew = loadCrew();
     let sessionPosts = loadSessionPosts();
+    let sessionPostTokens = loadSessionPostTokens();
+    let syncedSessionPostIds = loadSyncedSessionPostIds();
+    let sessionPostsSyncing = false;
+    let commentsSyncWarningShown = false;
     let destinationState = loadDestinationState();
     let activeDestinationId = destinations.some(destination => destination.id === destinationState.selectedId) ? destinationState.selectedId : defaultDestinationId;
     let activeDestination = destinations.find(destination => destination.id === activeDestinationId);
@@ -481,6 +488,158 @@
         return [];
       }
     }
+    function loadSessionPostTokens() {
+      try {
+        const saved = localStorage.getItem(sessionPostTokensStorageKey);
+        if (saved === null) return {};
+        const parsed = JSON.parse(saved);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Invalid saved post tokens.');
+        return Object.fromEntries(Object.entries(parsed).filter(([id, token]) => typeof id === 'string' && typeof token === 'string'));
+      } catch {
+        showToast('Could not load comment deletion permissions from this device.');
+        return {};
+      }
+    }
+    function loadSyncedSessionPostIds() {
+      try {
+        const saved = localStorage.getItem(syncedSessionPostIdsStorageKey);
+        if (saved === null) return new Set();
+        const parsed = JSON.parse(saved);
+        if (!Array.isArray(parsed) || parsed.some(id => typeof id !== 'string')) throw new Error('Invalid synced post list.');
+        return new Set(parsed);
+      } catch {
+        showToast('Could not load comment sync status from this device.');
+        return new Set();
+      }
+    }
+    function saveSessionPostTokens() {
+      try {
+        localStorage.setItem(sessionPostTokensStorageKey, JSON.stringify(sessionPostTokens));
+        return true;
+      } catch {
+        showToast('Could not save comment deletion permissions on this device.');
+        return false;
+      }
+    }
+    function saveSyncedSessionPostIds() {
+      try {
+        localStorage.setItem(syncedSessionPostIdsStorageKey, JSON.stringify([...syncedSessionPostIds].slice(-500)));
+      } catch {
+        showToast('Could not save comment sync status on this device.');
+      }
+    }
+    function createSessionPostToken(id) {
+      const existing = sessionPostTokens[id];
+      if (existing) return existing;
+      const bytes = new Uint8Array(32);
+      crypto.getRandomValues(bytes);
+      const token = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+      sessionPostTokens[id] = token;
+      if (!saveSessionPostTokens()) {
+        delete sessionPostTokens[id];
+        return null;
+      }
+      return token;
+    }
+    function saveSessionPosts() {
+      try {
+        localStorage.setItem(sessionPostsStorageKey, JSON.stringify(sessionPosts));
+        return true;
+      } catch {
+        showToast('Could not save the shared comments on this device.');
+        return false;
+      }
+    }
+    function isSessionPost(post) {
+      return post && typeof post.id === 'string'
+        && typeof post.author === 'string'
+        && typeof post.text === 'string'
+        && (post.type === 'tip' || post.type === 'comment')
+        && typeof post.destinationId === 'string'
+        && ['general', '1', '2'].includes(post.hotel)
+        && typeof post.createdAt === 'string'
+        && destinations.some(destination => destination.id === post.destinationId);
+    }
+    function sortSessionPosts(posts) {
+      return [...posts].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    }
+    async function fetchSharedSessionPosts() {
+      const response = await fetch(sessionPostsApiUrl, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Could not load shared comments (${response.status}).`);
+      const data = await response.json();
+      if (!Array.isArray(data.posts) || data.posts.some(post => !isSessionPost(post))) {
+        throw new Error('The shared comments response was invalid.');
+      }
+      return data.posts;
+    }
+    async function syncSessionPosts() {
+      if (sessionPostsSyncing || document.visibilityState === 'hidden') return;
+      sessionPostsSyncing = true;
+      try {
+        let remotePosts = await fetchSharedSessionPosts();
+        let remoteIds = new Set(remotePosts.map(post => post.id));
+        const unsyncedPosts = sessionPosts.filter(post => !remoteIds.has(post.id) && !syncedSessionPostIds.has(post.id));
+        for (let index = 0; index < unsyncedPosts.length; index += 25) {
+          const batch = unsyncedPosts.slice(index, index + 25);
+          const posts = batch.map(post => {
+            const deleteToken = createSessionPostToken(post.id);
+            if (!deleteToken) throw new Error('Could not prepare a comment for syncing.');
+            return { ...post, deleteToken };
+          });
+          const response = await fetch(sessionPostsApiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ posts })
+          });
+          if (!response.ok) throw new Error(`Could not sync saved comments (${response.status}).`);
+          const data = await response.json();
+          if (!Array.isArray(data.posts) || data.posts.some(post => !isSessionPost(post))) {
+            throw new Error('The saved comments response was invalid.');
+          }
+          remotePosts = [...new Map([...remotePosts, ...data.posts].map(post => [post.id, post])).values()];
+          remoteIds = new Set(remotePosts.map(post => post.id));
+          batch.forEach(post => syncedSessionPostIds.add(post.id));
+        }
+        if (unsyncedPosts.length) saveSyncedSessionPostIds();
+        remoteIds.forEach(id => syncedSessionPostIds.add(id));
+        saveSyncedSessionPostIds();
+        const latestPosts = new Map(remotePosts.map(post => [post.id, post]));
+        sessionPosts.forEach(post => {
+          if (!syncedSessionPostIds.has(post.id)) latestPosts.set(post.id, post);
+        });
+        sessionPosts = sortSessionPosts([...latestPosts.values()]);
+        saveSessionPosts();
+        renderSessionPosts();
+        commentsSyncWarningShown = false;
+      } catch (error) {
+        if (!commentsSyncWarningShown) {
+          showToast('Comments could not sync. Check your connection and try again.');
+          commentsSyncWarningShown = true;
+        }
+      } finally {
+        sessionPostsSyncing = false;
+      }
+    }
+    async function deleteSharedSessionPost(post) {
+      const deleteToken = sessionPostTokens[post.id];
+      if (!deleteToken) return;
+      try {
+        const response = await fetch(sessionPostsApiUrl, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: post.id, deleteToken })
+        });
+        if (!response.ok) throw new Error(`Could not delete the shared comment (${response.status}).`);
+        sessionPosts = sessionPosts.filter(item => item.id !== post.id);
+        delete sessionPostTokens[post.id];
+        saveSessionPostTokens();
+        saveSessionPosts();
+        renderSessionPosts();
+        showToast('Post deleted for everyone.');
+      } catch {
+        showToast('Could not delete this shared post. Please try again.');
+      }
+    }
     function renderSessionPosts() {
       const container = document.getElementById('sessionPosts');
       container.replaceChildren();
@@ -513,24 +672,16 @@
         time.dateTime = post.createdAt;
         const createdAt = new Date(post.createdAt);
         time.textContent = Number.isNaN(createdAt.getTime()) ? '' : createdAt.toLocaleString();
-        const deleteButton = document.createElement('button');
-        deleteButton.type = 'button';
-        deleteButton.className = 'delete-button session-post-delete';
-        deleteButton.textContent = 'Delete';
-        deleteButton.setAttribute('aria-label', `Delete ${post.type} by ${post.author}`);
-        deleteButton.addEventListener('click', () => {
-          const nextPosts = sessionPosts.filter(item => item.id !== post.id);
-          try {
-            localStorage.setItem(sessionPostsStorageKey, JSON.stringify(nextPosts));
-          } catch {
-            showToast('Could not delete this post in this browser.');
-            return;
-          }
-          sessionPosts = nextPosts;
-          renderSessionPosts();
-          showToast('Post deleted.');
-        });
-        header.append(author, type, context, time, deleteButton);
+        header.append(author, type, context, time);
+        if (sessionPostTokens[post.id]) {
+          const deleteButton = document.createElement('button');
+          deleteButton.type = 'button';
+          deleteButton.className = 'delete-button session-post-delete';
+          deleteButton.textContent = 'Delete';
+          deleteButton.setAttribute('aria-label', `Delete ${post.type} by ${post.author}`);
+          deleteButton.addEventListener('click', () => deleteSharedSessionPost(post));
+          header.append(deleteButton);
+        }
         const text = document.createElement('p');
         text.className = 'session-post-text';
         text.textContent = post.text;
@@ -1000,7 +1151,7 @@
         input.value = '';
       }
     });
-    document.getElementById('sessionForm').addEventListener('submit', event => {
+    document.getElementById('sessionForm').addEventListener('submit', async event => {
       event.preventDefault();
       const form = event.currentTarget;
       const data = Object.fromEntries(new FormData(form));
@@ -1024,17 +1175,28 @@
         hotel: data.hotel,
         createdAt: new Date().toISOString()
       };
-      const nextPosts = [...sessionPosts, post];
-      try {
-        localStorage.setItem(sessionPostsStorageKey, JSON.stringify(nextPosts));
-      } catch {
-        showToast('Could not save your post in this browser.');
+      const deleteToken = createSessionPostToken(post.id);
+      if (!deleteToken) {
+        showToast('Could not prepare your post for sharing.');
         return;
       }
-      sessionPosts = nextPosts;
-      form.elements.text.value = '';
-      renderSessionPosts();
-      showToast('Posted to the session on this device.');
+      try {
+        const response = await fetch(sessionPostsApiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ posts: [{ ...post, deleteToken }] })
+        });
+        if (!response.ok) throw new Error(`Could not post the shared comment (${response.status}).`);
+        sessionPosts = sortSessionPosts([...sessionPosts.filter(item => item.id !== post.id), post]);
+        syncedSessionPostIds.add(post.id);
+        saveSyncedSessionPostIds();
+        saveSessionPosts();
+        form.elements.text.value = '';
+        renderSessionPosts();
+        showToast('Posted and shared with the crew.');
+      } catch {
+        showToast('Your post was not shared. Check your connection and try again.');
+      }
     });
     document.getElementById('sessionDestination').addEventListener('change', renderSessionHotelOptions);
     document.getElementById('modalBackdrop').addEventListener('click', event => { if (event.target.id === 'modalBackdrop') closeModal(); });
@@ -1077,6 +1239,11 @@
     renderSessionPosts();
     renderCrew();
     render();
+    syncSessionPosts();
+    window.setInterval(syncSessionPosts, 60000);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') syncSessionPosts();
+    });
   </script>
 </body>
 </html>
