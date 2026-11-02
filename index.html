@@ -253,7 +253,7 @@
     </section>
     <section class="destination-picker" aria-labelledby="destinationHeading">
       <h2 id="destinationHeading">Layover destinations</h2>
-      <p class="destination-intro">Destination and hotel guide edits are shared with everyone who has this link. Choose a destination, then open “Edit destination menu, photo and map” or a hotel editor to update the shared board.</p>
+      <p class="destination-intro">The crew, places, destination menus and hotel guides are shared and editable by anyone with this link. Tips and comments are shared too.</p>
       <div class="destination-grid" id="destinationGrid" role="group" aria-label="Choose a destination"></div>
     </section>
     <section class="destination-guide" aria-labelledby="guideTitle">
@@ -304,7 +304,7 @@
       <aside class="side">
         <h3>Pass the good word</h3><p class="side-intro">Everyone has a good tip. Add yours and keep all the little discoveries in one place.</p>
         <div class="prompt"><p>“A friend told me about this tiny place...”</p><button id="addPromptButton">Add a recommendation <span aria-hidden="true">↗</span></button></div>
-        <div class="tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/></svg><span>Saved in this browser. Share a WhatsApp summary so the group can find every spot on the map.</span></div>
+        <div class="tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/></svg><span>Places and crew updates sync across devices and are visible to everyone with the trip link.</span></div>
         <div class="tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18m9-9H3"/><circle cx="12" cy="12" r="9"/></svg><span>Anyone can add a place here. Tap the plus, choose a category, and paste a Google Maps link if you have one.</span></div>
       </aside>
     </div>
@@ -374,6 +374,7 @@
     const syncedSessionPostIdsStorageKey = 'ca2026-synced-session-post-ids-v1';
     const sessionPostsApiUrl = 'https://trip-board-eta.vercel.app/api/comments';
     const destinationGuidesApiUrl = 'https://trip-board-eta.vercel.app/api/destination-guides';
+    const sharedListsApiUrl = 'https://trip-board-eta.vercel.app/api/shared-lists';
     const publicTripUrl = 'https://trip-board-eta.vercel.app/';
     const defaultCrew = ['SAS CA 26', '- Inga', '~ Pernille', '~ Samina', '~ Johan', '~ Anna', '~ Maren', '~ Tilde', '~ Charlotte', '- Liviu', '~ Natacha', '~ Joh', '- Giada', '~ My', '- Gonçalo', '~ Alexandru', '~ Jona V', '~ Catalina', '~ Yonaikel', '~ Berta', '~ Ellynor'];
     const destinations = [
@@ -418,6 +419,13 @@
     let destinationSyncWarningShown = false;
     let destinationFormDirty = false;
     let hotelFormsDirty = false;
+    let sharedListsSyncing = false;
+    let sharedListsSyncReady = false;
+    let sharedListsSyncWarningShown = false;
+    let placesFormDirty = false;
+    let crewFormDirty = false;
+    let pendingSharedPlaces = null;
+    let pendingSharedCrew = null;
     let destinationState = loadDestinationState();
     let activeDestinationId = destinations.some(destination => destination.id === destinationState.selectedId) ? destinationState.selectedId : defaultDestinationId;
     let activeDestination = destinations.find(destination => destination.id === activeDestinationId);
@@ -434,6 +442,10 @@
       try { localStorage.setItem(storageKey, JSON.stringify(places)); }
       catch { showToast('Could not save on this device. Try downloading a backup.'); }
     }
+    function saveCrewLocally() {
+      try { localStorage.setItem(crewStorageKey, JSON.stringify(crew)); }
+      catch { showToast('Could not save the travel crew in this browser.'); }
+    }
     function loadCrew() {
       try {
         const saved = localStorage.getItem(crewStorageKey);
@@ -445,6 +457,91 @@
         showToast('Could not load the saved travel crew.');
         return [...defaultCrew];
       }
+    }
+    async function fetchSharedLists() {
+      const response = await fetch(sharedListsApiUrl, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Could not load shared board lists (${response.status}).`);
+      const data = await response.json();
+      if ((!Array.isArray(data.places) && data.places !== null)
+        || (!Array.isArray(data.crew) && data.crew !== null)) {
+        throw new Error('The shared board lists response was invalid.');
+      }
+      return data;
+    }
+    async function syncSharedLists() {
+      if (sharedListsSyncing || document.visibilityState === 'hidden') return;
+      sharedListsSyncing = true;
+      try {
+        let data = await fetchSharedLists();
+        const bootstrap = {};
+        if (data.places === null && localStorage.getItem(storageKey) !== null) bootstrap.places = places;
+        if (data.crew === null && localStorage.getItem(crewStorageKey) !== null) bootstrap.crew = crew;
+        if (Object.keys(bootstrap).length) {
+          const response = await fetch(sharedListsApiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(bootstrap)
+          });
+          if (!response.ok) throw new Error(`Could not initialize shared board lists (${response.status}).`);
+          data = await fetchSharedLists();
+        }
+
+        sharedListsSyncReady = true;
+        let placesChanged = false;
+        let crewChanged = false;
+        if (data.places !== null) {
+          const placeEditorOpen = document.getElementById('modalBackdrop').classList.contains('open');
+          if (placesFormDirty || placeEditorOpen) {
+            pendingSharedPlaces = data.places;
+          }
+          else {
+            placesChanged = JSON.stringify(places) !== JSON.stringify(data.places);
+            places = data.places;
+            pendingSharedPlaces = null;
+            if (placesChanged) savePlaces();
+          }
+        }
+        if (data.crew !== null) {
+          const crewEditorOpen = document.getElementById('crewModalBackdrop').classList.contains('open');
+          if (crewFormDirty) pendingSharedCrew = data.crew;
+          else {
+            crewChanged = JSON.stringify(crew) !== JSON.stringify(data.crew);
+            crew = data.crew;
+            pendingSharedCrew = null;
+            if (crewChanged) saveCrewLocally();
+            if (crewEditorOpen && crewChanged) document.getElementById('crewNamesInput').value = crew.join('\n');
+          }
+        }
+        if (placesChanged) render();
+        if (crewChanged) renderCrew();
+        sharedListsSyncWarningShown = false;
+      } catch {
+        if (!sharedListsSyncWarningShown) {
+          showToast('Places and crew could not sync. Check your connection and try again.');
+          sharedListsSyncWarningShown = true;
+        }
+      } finally {
+        sharedListsSyncing = false;
+      }
+    }
+    async function saveSharedList(list, items) {
+      if (!sharedListsSyncReady) {
+        showToast('Shared places and crew are still loading. Please try again.');
+        return false;
+      }
+      try {
+        const response = await fetch(sharedListsApiUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ list, items })
+        });
+        if (!response.ok) throw new Error(`Could not save the shared ${list} list (${response.status}).`);
+      } catch {
+        showToast(`Could not save the shared ${list} list. Check your connection and try again.`);
+        return false;
+      }
+      sharedListsSyncWarningShown = false;
+      return true;
     }
     function renderCrew() {
       const avatarList = document.getElementById('crewAvatars');
@@ -469,11 +566,15 @@
       avatarList.setAttribute('aria-label', crew.length ? `Travel crew: ${crew.join(', ')}` : 'No travel crew members');
     }
     function openCrewModal() {
+      crewFormDirty = false;
       document.getElementById('crewNamesInput').value = crew.join('\n');
       document.getElementById('crewModalBackdrop').classList.add('open');
       setTimeout(() => document.getElementById('crewNamesInput').focus(), 50);
     }
-    function closeCrewModal() { document.getElementById('crewModalBackdrop').classList.remove('open'); }
+    function closeCrewModal() {
+      document.getElementById('crewModalBackdrop').classList.remove('open');
+      crewFormDirty = false;
+    }
     function whatsappChatSenders(chatText) {
       const names = [];
       for (const line of chatText.replace(/^\uFEFF/, '').split(/\r?\n/)) {
@@ -1093,6 +1194,7 @@
       document.getElementById('totalLabel').textContent = `${places.length} ${places.length === 1 ? 'place' : 'places'}`;
     }
     function openModal(id) {
+      placesFormDirty = false;
       editingId = id || null;
       const place = id ? places.find(item => item.id === id) : null;
       const form = document.getElementById('placeForm');
@@ -1111,7 +1213,10 @@
       document.getElementById('modalBackdrop').classList.add('open');
       setTimeout(() => document.getElementById('placeName').focus(), 50);
     }
-    function closeModal() { document.getElementById('modalBackdrop').classList.remove('open'); }
+    function closeModal() {
+      document.getElementById('modalBackdrop').classList.remove('open');
+      placesFormDirty = false;
+    }
     function openShareModal(message) {
       document.getElementById('shareMessage').value = message;
       document.getElementById('shareModalBackdrop').classList.add('open');
@@ -1186,20 +1291,40 @@
       event.preventDefault();
       await saveCurrentGuide(true);
     });
-    document.getElementById('placeForm').addEventListener('submit', event => {
+    document.getElementById('placeForm').addEventListener('input', () => { placesFormDirty = true; });
+    document.getElementById('placeForm').addEventListener('change', () => { placesFormDirty = true; });
+    document.getElementById('placeForm').addEventListener('submit', async event => {
       event.preventDefault();
       const form = event.currentTarget;
       const data = Object.fromEntries(new FormData(form));
       if (data.map && !/^https?:\/\//i.test(data.map)) { showToast('Please paste a full Google Maps link.'); return; }
       const record = { id: editingId || `p${Date.now()}`, name: data.name.trim(), category: data.category, area: data.area.trim(), note: data.note.trim(), map: data.map.trim(), by: data.by.trim() };
-      if (editingId) places = places.map(place => place.id === editingId ? record : place);
-      else places.unshift(record);
-      savePlaces(); render(); closeModal(); showToast(editingId ? 'Place updated.' : 'Added to the trip list.');
+      const basePlaces = pendingSharedPlaces || places;
+      const nextPlaces = editingId
+        ? placesFormDirty
+          ? basePlaces.some(place => place.id === editingId)
+            ? basePlaces.map(place => place.id === editingId ? record : place)
+            : [record, ...basePlaces]
+          : basePlaces
+        : [record, ...basePlaces];
+      if (!await saveSharedList('places', nextPlaces)) return;
+      places = nextPlaces;
+      pendingSharedPlaces = null;
+      savePlaces();
+      render();
+      closeModal();
+      showToast(editingId ? 'Place shared with everyone.' : 'Place added and shared with everyone.');
     });
-    document.getElementById('deletePlace').addEventListener('click', () => {
+    document.getElementById('deletePlace').addEventListener('click', async () => {
       if (!editingId) return;
-      places = places.filter(place => place.id !== editingId);
-      savePlaces(); render(); closeModal(); showToast('Place removed.');
+      const nextPlaces = (pendingSharedPlaces || places).filter(place => place.id !== editingId);
+      if (!await saveSharedList('places', nextPlaces)) return;
+      places = nextPlaces;
+      pendingSharedPlaces = null;
+      savePlaces();
+      render();
+      closeModal();
+      showToast('Place removed for everyone.');
     });
     document.getElementById('closeModal').addEventListener('click', closeModal);
     document.getElementById('editCrewButton').addEventListener('click', openCrewModal);
@@ -1207,7 +1332,8 @@
     document.getElementById('crewModalBackdrop').addEventListener('click', event => {
       if (event.target.id === 'crewModalBackdrop') closeCrewModal();
     });
-    document.getElementById('crewForm').addEventListener('submit', event => {
+    document.getElementById('crewNamesInput').addEventListener('input', () => { crewFormDirty = true; });
+    document.getElementById('crewForm').addEventListener('submit', async event => {
       event.preventDefault();
       const names = document.getElementById('crewNamesInput').value
         .split(/\r?\n/)
@@ -1215,16 +1341,13 @@
         .filter(Boolean);
       const uniqueNames = [...new Map(names.map(name => [name.toLocaleLowerCase(), name])).values()];
       if (uniqueNames.length > 50) { showToast('Add no more than 50 crew members.'); return; }
-      try {
-        localStorage.setItem(crewStorageKey, JSON.stringify(uniqueNames));
-      } catch {
-        showToast('Could not save the travel crew in this browser.');
-        return;
-      }
+      if (!await saveSharedList('crew', uniqueNames)) return;
       crew = uniqueNames;
+      pendingSharedCrew = null;
+      saveCrewLocally();
       renderCrew();
       closeCrewModal();
-      showToast('Travel crew saved on this device.');
+      showToast('Travel crew shared with everyone.');
     });
     document.getElementById('whatsAppChatFile').addEventListener('change', async event => {
       const input = event.currentTarget;
@@ -1250,6 +1373,7 @@
           return;
         }
         namesInput.value = mergedNames.join('\n');
+        crewFormDirty = true;
         showToast(`Imported ${importedNames.length} unique ${importedNames.length === 1 ? 'name' : 'names'}. Review and save the crew.`);
       } catch {
         showToast('Could not read that chat export. Try a plain-text WhatsApp .txt file.');
@@ -1351,12 +1475,15 @@
     renderSessionPosts();
     renderCrew();
     render();
+    syncSharedLists();
+    window.setInterval(syncSharedLists, 30000);
     syncDestinationState();
     window.setInterval(syncDestinationState, 30000);
     syncSessionPosts();
     window.setInterval(syncSessionPosts, 60000);
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
+        syncSharedLists();
         syncDestinationState();
         syncSessionPosts();
       }
