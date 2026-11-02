@@ -43,6 +43,10 @@
     .button-outline { border: 1px solid var(--line); background: var(--white); color: var(--ink); }
     .button svg { width: 17px; height: 17px; }
     .shell { max-width: 1240px; margin: auto; padding: 32px 32px 72px; }
+    .hero-plane { width: min(100%, 520px); margin: 0 auto 22px; text-align: center; }
+    .hero-plane img { display: block; width: 100%; aspect-ratio: 16 / 7; border-radius: 6px; object-fit: cover; object-position: center 52%; }
+    .hero-plane figcaption { margin-top: 5px; color: var(--muted); font-size: 9px; }
+    .hero-plane a { color: inherit; }
     .trip-head { display: flex; justify-content: space-between; align-items: end; gap: 20px; margin-bottom: 24px; }
     .eyebrow { color: var(--green); text-transform: uppercase; letter-spacing: 1.5px; font-size: 10px; font-weight: 700; }
     h1 { margin: 7px 0 5px; font: 600 38px/1.12 var(--serif); letter-spacing: 0; }
@@ -233,6 +237,10 @@
     </div>
   </header>
   <main class="shell">
+    <figure class="hero-plane">
+      <img src="https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8d/OY-KAL_Airbus_A320-232_A320_c_n_2883_-_SAS_%2846569721044%29.jpg/960px-OY-KAL_Airbus_A320-232_A320_c_n_2883_-_SAS_%2846569721044%29.jpg" alt="SAS Airbus A320 aircraft">
+      <figcaption><a href="https://commons.wikimedia.org/wiki/File:OY-KAL_Airbus_A320-232_A320_c_n_2883_-_SAS_(46569721044).jpg" target="_blank" rel="noopener noreferrer">SAS Airbus A320 by Markus Eigenheer</a> · <a href="https://creativecommons.org/licenses/by-sa/2.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 2.0</a></figcaption>
+    </figure>
     <section class="trip-head">
       <div><div class="eyebrow">The group trip board</div><h1 id="tripTitle">Crew layover</h1><p class="trip-sub" id="tripSubtitle">A few good ideas from everyone. More welcome.</p></div>
       <div class="trip-meta">
@@ -346,6 +354,7 @@
     const destinationStorageKey = 'ca2026-destination-guides-v1';
     const crewStorageKey = 'ca2026-travel-crew-v1';
     const sessionPostsStorageKey = 'ca2026-session-posts-v1';
+    const publicTripUrl = 'https://trip-board-eta.vercel.app/';
     const defaultCrew = ['SAS CA 26', '- Inga', '~ Pernille', '~ Samina', '~ Johan', '~ Anna', '~ Maren', '~ Tilde', '~ Charlotte', '- Liviu', '~ Natacha', '~ Joh', '- Giada', '~ My', '- Gonçalo', '~ Alexandru', '~ Jona V', '~ Catalina', '~ Yonaikel', '~ Berta', '~ Ellynor'];
     const destinations = [
       { id: 'gothenburg', name: 'Gothenburg', country: 'Sweden', photoUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/Karlatornet_along_with_Gothenburg_skyline..jpg/960px-Karlatornet_along_with_Gothenburg_skyline..jpg', photoCreditLabel: 'Axadem · CC BY-SA 4.0', photoCreditUrl: 'https://commons.wikimedia.org/wiki/File:Karlatornet_along_with_Gothenburg_skyline..jpg' },
@@ -876,17 +885,43 @@
     }
     function shareText() {
       const title = document.getElementById('tripTitle').textContent;
-      const lines = [`✈️ ${title} — our group tips`, ''];
+      const subtitle = document.getElementById('tripSubtitle').textContent.trim();
+      const lines = [`✈️ ${title}`, subtitle, '', `Open the trip board: ${publicTripUrl}`, '', 'DESTINATIONS'];
+      const categories = [
+        { id: 'eat', label: 'EAT' },
+        { id: 'visit', label: 'VISIT' },
+        { id: 'shopping', label: 'SHOPPING' },
+        { id: 'tips', label: 'TIPS' }
+      ];
+      for (const destination of destinations) {
+        const guide = destinationState.guides[destination.id];
+        lines.push('', `📍 ${destinationName(destination.id)}${destinationCountry(destination.id) ? `, ${destinationCountry(destination.id)}` : ''}`);
+        guide.hotels.forEach((hotel, index) => {
+          const hotelLabel = hotel.name || `Hotel ${index + 1}`;
+          const hasCustomName = hotelLabel !== `Hotel ${index + 1}`;
+          const hasRecommendations = categories.some(category => hotel.lists[category.id]?.length);
+          if (!hasCustomName && !hasRecommendations) return;
+          if (hasCustomName) lines.push(`  🏨 ${hotelLabel}`);
+          for (const category of categories) {
+            const items = hotel.lists[category.id] || [];
+            if (!items.length) continue;
+            lines.push(`  ${category.label}:`);
+            items.forEach(item => lines.push(`  • ${item}`));
+          }
+          if (hotel.location) lines.push(`  Hotel location: ${hotelLocationMapUrl(hotel.location)}`);
+        });
+        const destinationMap = destinationMapUrl(destination, guide);
+        lines.push(`  Map: ${destinationMap}`);
+      }
       for (const category of ['eat', 'shop', 'visit']) {
         const items = places.filter(place => place.category === category);
         if (!items.length) continue;
-        lines.push(`${categoryEmoji[category]} ${categoryNames[category].toUpperCase()}`);
+        lines.push('', `${categoryEmoji[category]} ${categoryNames[category].toUpperCase()}`);
         items.forEach(place => {
           const detail = [place.area, place.note, place.by ? `via ${place.by}` : ''].filter(Boolean).join(' · ');
           lines.push(`• ${place.name}${detail ? ` — ${detail}` : ''}`);
           lines.push(mapsUrl(place));
         });
-        lines.push('');
       }
       return lines.join('\n').trim();
     }
@@ -1015,11 +1050,18 @@
     document.getElementById('shareButton').addEventListener('click', async () => {
       const message = shareText();
       if (navigator.share) {
-        try { await navigator.share({ title: document.getElementById('tripTitle').textContent, text: message }); return; }
+        try {
+          await navigator.share({
+            title: document.getElementById('tripTitle').textContent,
+            text: message,
+            url: publicTripUrl
+          });
+          return;
+        }
         catch (error) { if (error.name === 'AbortError') return; }
       }
-      const whatsappUrl = 'https://wa.me/?text=' + encodeURIComponent(message);
-      window.open(whatsappUrl, '_blank', 'noopener');
+      const subject = `${document.getElementById('tripTitle').textContent} trip board`;
+      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
     });
     document.getElementById('exportButton').addEventListener('click', () => {
       if (!saveHotelGuides(false) || !saveCurrentGuide(false)) return;
