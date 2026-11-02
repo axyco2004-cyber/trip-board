@@ -253,7 +253,7 @@
     </section>
     <section class="destination-picker" aria-labelledby="destinationHeading">
       <h2 id="destinationHeading">Layover destinations</h2>
-      <p class="destination-intro">Choose a destination, then open either hotel section to see and edit its separate Eat, Visit, Shopping and Tips lists. Changes are saved in this browser.</p>
+      <p class="destination-intro">Choose a destination, then open either hotel section to see and edit its separate Eat, Visit, Shopping and Tips lists. To rename a menu item, select it and open “Edit destination menu, photo and map” below. Changes are saved in this browser.</p>
       <div class="destination-grid" id="destinationGrid" role="group" aria-label="Choose a destination"></div>
     </section>
     <section class="destination-guide" aria-labelledby="guideTitle">
@@ -265,7 +265,7 @@
       <details class="guide-editor" style="margin-top:16px">
         <summary>Edit destination menu, photo and map</summary>
         <form id="destinationForm">
-          <div class="field"><label for="destinationNameInput">Destination menu name *</label><input id="destinationNameInput" name="name" required maxlength="60" placeholder="Others"></div>
+          <div class="field"><label for="destinationNameInput">Destination menu name *</label><input id="destinationNameInput" name="name" required maxlength="60" placeholder="Other"></div>
           <div class="field"><label for="destinationCountryInput">Country or area</label><input id="destinationCountryInput" name="country" maxlength="60" placeholder="Optional"></div>
           <div class="field"><label for="destinationPhotoInput">Photo URL <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input id="destinationPhotoInput" name="photoUrl" type="url" placeholder="https://..."><span class="field-hint">Update the photo credit below when you replace the image.</span></div>
           <div class="field"><label for="destinationCreditInput">Photo credit <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input id="destinationCreditInput" name="photoCreditLabel" maxlength="120" placeholder="Photographer and license"></div>
@@ -365,7 +365,7 @@
       { id: 'oslo', name: 'Oslo', country: 'Norway', photoUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/Oslo_Skyline%2C_drone.jpg/960px-Oslo_Skyline%2C_drone.jpg', photoCreditLabel: 'Sunderland Renaissance · CC BY-SA 4.0', photoCreditUrl: 'https://commons.wikimedia.org/wiki/File:Oslo_Skyline,_drone.jpg' },
       { id: 'helsinki', name: 'Helsinki', country: 'Finland', photoUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/Helsinki_Cathedral_2019.jpg/960px-Helsinki_Cathedral_2019.jpg', photoCreditLabel: 'Farzad Abedi · CC BY-SA 4.0', photoCreditUrl: 'https://commons.wikimedia.org/wiki/File:Helsinki_Cathedral_2019.jpg' },
       { id: 'stockholm', name: 'Stockholm', country: 'Sweden', photoUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/14/Stockholm_city_skyline_and_waterfront_at_night_%28April_2016%29.jpg/960px-Stockholm_city_skyline_and_waterfront_at_night_%28April_2016%29.jpg', photoCreditLabel: 'Micael Widell · CC BY 3.0', photoCreditUrl: 'https://commons.wikimedia.org/wiki/File:Stockholm_city_skyline_and_waterfront_at_night_(April_2016).jpg' },
-      { id: 'others', name: 'Others', country: '', mapSearch: 'Europe', photoUrl: '', photoCreditLabel: '', photoCreditUrl: '' }
+      { id: 'others', name: 'Other', country: '', mapSearch: 'Europe', photoUrl: '', photoCreditLabel: '', photoCreditUrl: '' }
     ];
     const migratedDestinationData = {
       selectedId: 'others',
@@ -752,7 +752,9 @@
             : { visit: legacyVisitItems, tips: Array.isArray(guide.tips) ? guide.tips.filter(tip => typeof tip === 'string') : [] };
           const savedHotels = Array.isArray(guide.hotels) ? guide.hotels : [];
           state.guides[destination.id] = {
-            name: typeof guide.name === 'string' && guide.name.trim() ? guide.name.trim() : defaults.name,
+            name: typeof guide.name === 'string' && guide.name.trim()
+              ? guide.name.trim() === 'Others' && destination.id === 'others' ? defaults.name : guide.name.trim()
+              : defaults.name,
             country: typeof guide.country === 'string' ? guide.country.trim() : defaults.country,
             hotels: defaults.hotels.map((hotel, index) => {
               const savedHotel = savedHotels[index];
