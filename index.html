@@ -253,7 +253,7 @@
     </section>
     <section class="destination-picker" aria-labelledby="destinationHeading">
       <h2 id="destinationHeading">Layover destinations</h2>
-      <p class="destination-intro">Choose a destination, then open either hotel section to see and edit its separate Eat, Visit, Shopping and Tips lists. To rename a menu item, select it and open “Edit destination menu, photo and map” below. Changes are saved in this browser.</p>
+      <p class="destination-intro">Destination and hotel guide edits are shared with everyone who has this link. Choose a destination, then open “Edit destination menu, photo and map” or a hotel editor to update the shared board.</p>
       <div class="destination-grid" id="destinationGrid" role="group" aria-label="Choose a destination"></div>
     </section>
     <section class="destination-guide" aria-labelledby="guideTitle">
@@ -271,7 +271,7 @@
           <div class="field"><label for="destinationCreditInput">Photo credit <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input id="destinationCreditInput" name="photoCreditLabel" maxlength="120" placeholder="Photographer and license"></div>
           <div class="field"><label for="destinationCreditUrlInput">Photo credit link <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input id="destinationCreditUrlInput" name="photoCreditUrl" type="url" placeholder="https://..."></div>
           <div class="field"><label for="destinationMapsInput">Google Maps link <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input id="destinationMapsInput" name="mapsUrl" type="url" placeholder="Paste a Google Maps link"><span class="field-hint">Leave blank to use a Google Maps search for this destination.</span></div>
-          <div class="guide-save-row"><button type="submit" class="button button-green">Save destination</button><p class="guide-save-note">Saved on this device only; other people's browsers won't sync these changes.</p></div>
+          <div class="guide-save-row"><button type="submit" class="button button-green">Save shared destination</button><p class="guide-save-note">Anyone with the public link can edit this shared guide.</p></div>
         </form>
       </details>
     </section>
@@ -373,6 +373,7 @@
     const sessionPostTokensStorageKey = 'ca2026-session-post-tokens-v1';
     const syncedSessionPostIdsStorageKey = 'ca2026-synced-session-post-ids-v1';
     const sessionPostsApiUrl = 'https://trip-board-eta.vercel.app/api/comments';
+    const destinationGuidesApiUrl = 'https://trip-board-eta.vercel.app/api/destination-guides';
     const publicTripUrl = 'https://trip-board-eta.vercel.app/';
     const defaultCrew = ['SAS CA 26', '- Inga', '~ Pernille', '~ Samina', '~ Johan', '~ Anna', '~ Maren', '~ Tilde', '~ Charlotte', '- Liviu', '~ Natacha', '~ Joh', '- Giada', '~ My', '- Gonçalo', '~ Alexandru', '~ Jona V', '~ Catalina', '~ Yonaikel', '~ Berta', '~ Ellynor'];
     const destinations = [
@@ -412,6 +413,11 @@
     let syncedSessionPostIds = loadSyncedSessionPostIds();
     let sessionPostsSyncing = false;
     let commentsSyncWarningShown = false;
+    let destinationStateSyncing = false;
+    let destinationStateSyncReady = false;
+    let destinationSyncWarningShown = false;
+    let destinationFormDirty = false;
+    let hotelFormsDirty = false;
     let destinationState = loadDestinationState();
     let activeDestinationId = destinations.some(destination => destination.id === destinationState.selectedId) ? destinationState.selectedId : defaultDestinationId;
     let activeDestination = destinations.find(destination => destination.id === activeDestinationId);
@@ -747,14 +753,14 @@
         mapsUrl: ''
       };
     }
-    function loadDestinationState() {
+    function loadDestinationState(source = null) {
       const state = {
         selectedId: defaultDestinationId,
         guides: Object.fromEntries(destinations.map(destination => [destination.id, defaultGuide(destination)]))
       };
       try {
         const saved = localStorage.getItem(destinationStorageKey);
-        const parsed = saved === null ? migratedDestinationData : JSON.parse(saved);
+        const parsed = source || (saved === null ? migratedDestinationData : JSON.parse(saved));
         if (!parsed || typeof parsed !== 'object') throw new Error('Invalid destination guide data.');
         if (typeof parsed.selectedId === 'string') state.selectedId = parsed.selectedId;
         for (const destination of destinations) {
@@ -801,7 +807,7 @@
       }
       return state;
     }
-    function saveDestinationState() {
+    function saveDestinationLocally() {
       destinationState.selectedId = activeDestinationId;
       try {
         localStorage.setItem(destinationStorageKey, JSON.stringify(destinationState));
@@ -809,6 +815,74 @@
       } catch {
         showToast('Could not save destination changes in this browser.');
         return false;
+      }
+    }
+    async function saveDestinationState(destinationId = activeDestinationId) {
+      if (!destinationStateSyncReady) {
+        showToast('Shared destination guides are still loading. Please try again.');
+        return false;
+      }
+      try {
+        const response = await fetch(destinationGuidesApiUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ destinationId, guide: destinationState.guides[destinationId] })
+        });
+        if (!response.ok) throw new Error(`Could not save shared destination (${response.status}).`);
+      } catch {
+        showToast('Could not save this shared guide. Check your connection and try again.');
+        return false;
+      }
+      saveDestinationLocally();
+      return true;
+    }
+    async function syncDestinationState() {
+      if (destinationStateSyncing || document.visibilityState === 'hidden'
+        || destinationFormDirty || hotelFormsDirty) return;
+      destinationStateSyncing = true;
+      try {
+        let response = await fetch(destinationGuidesApiUrl, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Could not load shared destination guides (${response.status}).`);
+        let data = await response.json();
+        if (!data.guides || typeof data.guides !== 'object') throw new Error('The shared destination response was invalid.');
+        if (Object.keys(data.guides).length === 0) {
+          response = await fetch(destinationGuidesApiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ guides: destinationState.guides })
+          });
+          if (response.status !== 409 && !response.ok) {
+            throw new Error(`Could not initialize shared destination guides (${response.status}).`);
+          }
+          response = await fetch(destinationGuidesApiUrl, { cache: 'no-store' });
+          if (!response.ok) throw new Error(`Could not load shared destination guides (${response.status}).`);
+          data = await response.json();
+        }
+        if (!data.guides || typeof data.guides !== 'object') throw new Error('The shared destination response was invalid.');
+        const selectedId = activeDestinationId;
+        const hasDirtyGuide = destinationFormDirty || hotelFormsDirty;
+        const unsavedGuide = hasDirtyGuide ? destinationState.guides[selectedId] : null;
+        destinationState = loadDestinationState({ selectedId, guides: data.guides });
+        activeDestinationId = destinations.some(destination => destination.id === selectedId) ? selectedId : defaultDestinationId;
+        if (unsavedGuide) destinationState.guides[selectedId] = unsavedGuide;
+        activeDestination = destinations.find(destination => destination.id === activeDestinationId);
+        destinationState.selectedId = activeDestinationId;
+        saveDestinationLocally();
+        destinationStateSyncReady = true;
+        if (hasDirtyGuide) return;
+        renderDestinationMenu();
+        renderDestinationGuide();
+        renderSessionDestinationOptions();
+        renderSessionPosts();
+        render();
+        destinationSyncWarningShown = false;
+      } catch {
+        if (!destinationSyncWarningShown) {
+          showToast('Shared destination guides could not sync. Check your connection and try again.');
+          destinationSyncWarningShown = true;
+        }
+      } finally {
+        destinationStateSyncing = false;
       }
     }
     function activeGuide() { return destinationState.guides[activeDestinationId]; }
@@ -836,11 +910,11 @@
           : '';
         return `<article class="destination-item"><button class="destination-card" type="button" data-destination="${destination.id}" aria-pressed="${destination.id === activeDestinationId}" aria-label="Show ${safeText(name)} guide">${photo}<span class="destination-name">${safeText(name)}</span></button>${credit}</article>`;
       }).join('');
-      document.querySelectorAll('.destination-card').forEach(button => button.addEventListener('click', () => {
-        if (button.dataset.destination === activeDestinationId || !saveHotelGuides(false) || !saveCurrentGuide(false)) return;
+      document.querySelectorAll('.destination-card').forEach(button => button.addEventListener('click', async () => {
+        if (button.dataset.destination === activeDestinationId || !await saveActiveGuide(false)) return;
         activeDestinationId = button.dataset.destination;
         activeDestination = destinations.find(destination => destination.id === activeDestinationId);
-        saveDestinationState();
+        saveDestinationLocally();
         renderDestinationMenu();
         renderDestinationGuide();
         renderSessionDestinationOptions();
@@ -904,9 +978,9 @@
           input.value = hotel.lists[category.id].join('\n');
         }
       });
-      document.querySelectorAll('.hotel-guide-form').forEach(form => form.addEventListener('submit', event => {
+      document.querySelectorAll('.hotel-guide-form').forEach(form => form.addEventListener('submit', async event => {
         event.preventDefault();
-        saveHotelGuides(true);
+        await saveActiveGuide(true);
       }));
       const mapLink = document.getElementById('destinationMapLink');
       mapLink.href = destinationMapUrl(activeDestination, guide);
@@ -919,40 +993,70 @@
       form.elements.photoCreditUrl.value = guide.photoCreditUrl;
       form.elements.mapsUrl.value = guide.mapsUrl;
     }
-    function saveHotelGuides(announce) {
+    async function saveActiveGuide(announce) {
       const forms = [...document.querySelectorAll('.hotel-guide-form')];
       if (forms.length !== 2) return false;
-      const previousHotels = activeGuide().hotels;
       const categories = ['eat', 'visit', 'shopping', 'tips'];
-      const locationInputs = forms.map(form => new FormData(form).get('location').trim());
-      if (locationInputs.some(location => location && !isValidHotelLocation(location))) {
-        showToast('Enter GPS coordinates as latitude, longitude or a full http(s) Google Maps link.');
-        return false;
-      }
       const nextHotels = forms.map(form => {
         const data = Object.fromEntries(new FormData(form));
+        const location = data.location.trim();
+        if (location && !isValidHotelLocation(location)) {
+          showToast('Enter GPS coordinates as latitude, longitude or a full http(s) Google Maps link.');
+          return null;
+        }
         return {
           name: data.name.trim() || `Hotel ${Number(form.dataset.hotelIndex) + 1}`,
-          location: data.location.trim(),
+          location,
           lists: Object.fromEntries(categories.map(category => [
             category,
             data[category].split(/\r?\n/).map(item => item.trim()).filter(Boolean).slice(0, 20)
           ]))
         };
       });
-      if (JSON.stringify(nextHotels) === JSON.stringify(previousHotels)) return true;
-      activeGuide().hotels = nextHotels;
-      if (!saveDestinationState()) {
-        activeGuide().hotels = previousHotels;
-        renderDestinationGuide();
+      const form = document.getElementById('destinationForm');
+      const data = Object.fromEntries(new FormData(form));
+      const photoUrl = normalizeWebUrl(data.photoUrl.trim());
+      const photoCreditUrl = normalizeWebUrl(data.photoCreditUrl.trim());
+      const mapsUrl = normalizeWebUrl(data.mapsUrl.trim());
+      const name = data.name.trim();
+      const country = data.country.trim();
+      if (nextHotels.some(hotel => !hotel)) return false;
+      if (!name) { showToast('Add a name for this destination menu.'); return false; }
+      if (data.photoUrl.trim() && !photoUrl) { showToast('Enter a full http(s) photo URL.'); return false; }
+      if (data.photoCreditUrl.trim() && !photoCreditUrl) { showToast('Enter a full http(s) photo credit link.'); return false; }
+      if (data.mapsUrl.trim() && !mapsUrl) { showToast('Enter a full http(s) Google Maps link.'); return false; }
+      const nextGuide = {
+        name,
+        country,
+        hotels: nextHotels,
+        photoUrl,
+        photoCreditLabel: data.photoCreditLabel.trim(),
+        photoCreditUrl,
+        mapsUrl
+      };
+      const previousGuide = activeGuide();
+      if (JSON.stringify(nextGuide) === JSON.stringify(previousGuide)) {
+        destinationFormDirty = false;
+        hotelFormsDirty = false;
+        return true;
+      }
+      destinationState.guides[activeDestinationId] = nextGuide;
+      if (!await saveDestinationState()) {
+        destinationState.guides[activeDestinationId] = previousGuide;
         return false;
       }
+      destinationFormDirty = false;
+      hotelFormsDirty = false;
+      renderDestinationMenu();
       renderDestinationGuide();
-      renderSessionHotelOptions();
+      renderSessionDestinationOptions();
       renderSessionPosts();
-      if (announce) showToast(`${activeDestinationName()} hotel lists saved on this device.`);
+      render();
+      if (announce) showToast(`${activeDestinationName()} guide shared with everyone.`);
       return true;
     }
+    function saveHotelGuides(announce) { return saveActiveGuide(announce); }
+    function saveCurrentGuide(announce) { return saveActiveGuide(announce); }
     function isValidHotelLocation(location) {
       const coordinates = location.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
       if (coordinates) {
@@ -964,43 +1068,6 @@
     }
     function hotelLocationMapUrl(location) {
       return normalizeWebUrl(location) || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
-    }
-    function saveCurrentGuide(announce) {
-      const form = document.getElementById('destinationForm');
-      const data = Object.fromEntries(new FormData(form));
-      const photoUrl = normalizeWebUrl(data.photoUrl.trim());
-      const photoCreditUrl = normalizeWebUrl(data.photoCreditUrl.trim());
-      const mapsUrl = normalizeWebUrl(data.mapsUrl.trim());
-      const name = data.name.trim();
-      const country = data.country.trim();
-      if (!name) { showToast('Add a name for this destination menu.'); return false; }
-      if (data.photoUrl.trim() && !photoUrl) { showToast('Enter a full http(s) photo URL.'); return false; }
-      if (data.photoCreditUrl.trim() && !photoCreditUrl) { showToast('Enter a full http(s) photo credit link.'); return false; }
-      if (data.mapsUrl.trim() && !mapsUrl) { showToast('Enter a full http(s) Google Maps link.'); return false; }
-      const nextGuide = {
-        name,
-        country,
-        hotels: activeGuide().hotels,
-        photoUrl,
-        photoCreditLabel: data.photoCreditLabel.trim(),
-        photoCreditUrl,
-        mapsUrl
-      };
-      if (JSON.stringify(nextGuide) === JSON.stringify(activeGuide())) return true;
-      const previousGuide = activeGuide();
-      destinationState.guides[activeDestinationId] = nextGuide;
-      if (!saveDestinationState()) {
-        destinationState.guides[activeDestinationId] = previousGuide;
-        renderDestinationGuide();
-        return false;
-      }
-      renderDestinationMenu();
-      renderDestinationGuide();
-      renderSessionDestinationOptions();
-      renderSessionPosts();
-      render();
-      if (announce) showToast(`${activeDestinationName()} guide saved on this device.`);
-      return true;
     }
     function mapsUrl(place) {
       if (place.map) return place.map;
@@ -1113,9 +1180,11 @@
       }
       return lines.join('\n').trim();
     }
-    document.getElementById('destinationForm').addEventListener('submit', event => {
+    document.getElementById('destinationForm').addEventListener('input', () => { destinationFormDirty = true; });
+    document.getElementById('destinationHotels').addEventListener('input', () => { hotelFormsDirty = true; });
+    document.getElementById('destinationForm').addEventListener('submit', async event => {
       event.preventDefault();
-      saveCurrentGuide(true);
+      await saveCurrentGuide(true);
     });
     document.getElementById('placeForm').addEventListener('submit', event => {
       event.preventDefault();
@@ -1268,8 +1337,8 @@
       if (event.target.id === 'shareModalBackdrop') closeShareModal();
     });
     document.getElementById('copyShareMessage').addEventListener('click', copyShareMessage);
-    document.getElementById('exportButton').addEventListener('click', () => {
-      if (!saveHotelGuides(false) || !saveCurrentGuide(false)) return;
+    document.getElementById('exportButton').addEventListener('click', async () => {
+      if (!await saveActiveGuide(false)) return;
       const backup = { title: document.getElementById('tripTitle').textContent, places, crew, sessionPosts, selectedDestination: activeDestinationId, destinationGuides: destinationState.guides, exportedAt: new Date().toISOString() };
       const link = document.createElement('a');
       link.href = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }));
@@ -1282,10 +1351,15 @@
     renderSessionPosts();
     renderCrew();
     render();
+    syncDestinationState();
+    window.setInterval(syncDestinationState, 30000);
     syncSessionPosts();
     window.setInterval(syncSessionPosts, 60000);
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') syncSessionPosts();
+      if (document.visibilityState === 'visible') {
+        syncDestinationState();
+        syncSessionPosts();
+      }
     });
   </script>
 </body>
