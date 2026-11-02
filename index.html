@@ -344,6 +344,22 @@
       </form>
     </section>
   </div>
+  <div class="modal-backdrop" id="shareModalBackdrop" role="presentation">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
+      <div class="modal-head">
+        <div><h2 id="shareModalTitle">Share CA2026</h2><p>Copy the trip details or share the public link.</p></div>
+        <button class="close-button" id="closeShareModal" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="field">
+        <label for="shareMessage">Trip message</label>
+        <textarea id="shareMessage" readonly rows="8"></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="button button-outline" id="copyShareMessage" type="button">Copy trip details</button>
+        <a class="button button-green" id="openTripLink" href="https://trip-board-eta.vercel.app/" target="_blank" rel="noopener noreferrer">Open trip link</a>
+      </div>
+    </section>
+  </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script>
     const seedPlaces = [];
@@ -1029,6 +1045,25 @@
       setTimeout(() => document.getElementById('placeName').focus(), 50);
     }
     function closeModal() { document.getElementById('modalBackdrop').classList.remove('open'); }
+    function openShareModal(message) {
+      document.getElementById('shareMessage').value = message;
+      document.getElementById('shareModalBackdrop').classList.add('open');
+      document.getElementById('shareMessage').focus();
+      document.getElementById('shareMessage').select();
+    }
+    function closeShareModal() { document.getElementById('shareModalBackdrop').classList.remove('open'); }
+    async function copyShareMessage() {
+      const message = document.getElementById('shareMessage');
+      try {
+        await navigator.clipboard.writeText(message.value);
+        showToast('Trip details copied. Paste them into a message to share.');
+      } catch {
+        message.focus();
+        message.select();
+        const copied = document.execCommand('copy');
+        showToast(copied ? 'Trip details copied. Paste them into a message to share.' : 'Trip details selected. Copy them to share.');
+      }
+    }
     function showToast(message) {
       const toast = document.getElementById('toast');
       toast.textContent = message;
@@ -1203,7 +1238,7 @@
     document.getElementById('sessionDestination').addEventListener('change', renderSessionHotelOptions);
     document.getElementById('modalBackdrop').addEventListener('click', event => { if (event.target.id === 'modalBackdrop') closeModal(); });
     document.addEventListener('keydown', event => {
-      if (event.key === 'Escape') { closeModal(); closeCrewModal(); }
+      if (event.key === 'Escape') { closeModal(); closeCrewModal(); closeShareModal(); }
     });
     document.getElementById('addPromptButton').addEventListener('click', () => openModal());
     document.querySelectorAll('.filter').forEach(button => button.addEventListener('click', () => {
@@ -1213,7 +1248,7 @@
     document.getElementById('searchInput').addEventListener('input', render);
     document.getElementById('shareButton').addEventListener('click', async () => {
       const message = shareText();
-      if (navigator.share) {
+      if (window.isSecureContext && typeof navigator.share === 'function') {
         try {
           await navigator.share({
             title: document.getElementById('tripTitle').textContent,
@@ -1222,11 +1257,17 @@
           });
           return;
         }
-        catch (error) { if (error.name === 'AbortError') return; }
+        catch (error) {
+          if (error.name === 'AbortError') return;
+        }
       }
-      const subject = `${document.getElementById('tripTitle').textContent} trip board`;
-      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+      openShareModal(message);
     });
+    document.getElementById('closeShareModal').addEventListener('click', closeShareModal);
+    document.getElementById('shareModalBackdrop').addEventListener('click', event => {
+      if (event.target.id === 'shareModalBackdrop') closeShareModal();
+    });
+    document.getElementById('copyShareMessage').addEventListener('click', copyShareMessage);
     document.getElementById('exportButton').addEventListener('click', () => {
       if (!saveHotelGuides(false) || !saveCurrentGuide(false)) return;
       const backup = { title: document.getElementById('tripTitle').textContent, places, crew, sessionPosts, selectedDestination: activeDestinationId, destinationGuides: destinationState.guides, exportedAt: new Date().toISOString() };
