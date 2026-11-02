@@ -34,7 +34,7 @@ async function redisCommand(...command) {
   const response = await fetch(url, {
     method: 'POST',
     headers: {
-      Authorization: `******`,
+      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(command)
