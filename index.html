@@ -1066,7 +1066,7 @@
                 <summary>Edit ${safeText(hotelName)} lists</summary>
                 <form class="hotel-guide-form" data-hotel-index="${index}">
                   <div class="field"><label for="hotel${hotelNumber}-name-input">Hotel name</label><input id="hotel${hotelNumber}-name-input" name="name" maxlength="80" value="${safeText(hotelName)}" placeholder="Hotel ${hotelNumber}"></div>
-                  <div class="field"><label for="hotel${hotelNumber}-location-input">GPS coordinates or Google Maps link</label><input id="hotel${hotelNumber}-location-input" name="location" maxlength="500" value="${safeText(hotel.location || '')}" placeholder="57.7089, 11.9746 or paste a Maps link"><span class="field-hint">Add coordinates or a Google Maps URL to show a map link under this hotel.</span></div>
+                  <div class="field"><label for="hotel${hotelNumber}-location-input">Hotel address link (Google Maps)</label><input id="hotel${hotelNumber}-location-input" name="location" type="url" maxlength="500" value="${safeText(hotel.location || '')}" placeholder="Paste a Google Maps address link"><span class="field-hint">Paste the hotel's Google Maps address link to show a map button.</span></div>
                   ${fieldsHtml}
                   <div class="guide-save-row"><button type="submit" class="button button-green">Save hotel</button></div>
                 </form>
@@ -1105,7 +1105,7 @@
         const data = Object.fromEntries(new FormData(form));
         const location = data.location.trim();
         if (location && !isValidHotelLocation(location)) {
-          showToast('Enter GPS coordinates as latitude, longitude or a full http(s) Google Maps link.');
+          showToast('Paste a full Google Maps address link for the hotel.');
           return null;
         }
         const lists = Object.fromEntries(categories.map(category => [
@@ -1167,13 +1167,15 @@
     function saveHotelGuides(announce) { return saveActiveGuide(announce); }
     function saveCurrentGuide(announce) { return saveActiveGuide(announce); }
     function isValidHotelLocation(location) {
-      const coordinates = location.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
-      if (coordinates) {
-        const latitude = Number(coordinates[1]);
-        const longitude = Number(coordinates[2]);
-        return latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
+      try {
+        const url = new URL(location);
+        return (url.protocol === 'https:' || url.protocol === 'http:')
+          && (url.hostname === 'google.com' || url.hostname.endsWith('.google.com')
+            || url.hostname === 'goo.gl' || url.hostname === 'maps.app.goo.gl')
+          && (url.hostname === 'maps.app.goo.gl' || url.pathname.startsWith('/maps'));
+      } catch {
+        return false;
       }
-      return Boolean(normalizeWebUrl(location));
     }
     function hotelLocationMapUrl(location) {
       return normalizeWebUrl(location) || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;

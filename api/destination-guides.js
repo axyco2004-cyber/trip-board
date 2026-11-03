@@ -65,6 +65,21 @@ function isSafeUrl(value) {
   }
 }
 
+function isGoogleMapsUrl(value) {
+  if (!isSafeUrl(value)) return false;
+  try {
+    const url = new URL(value);
+    const supportedHost = url.hostname === 'google.com'
+      || url.hostname.endsWith('.google.com')
+      || url.hostname === 'goo.gl'
+      || url.hostname === 'maps.app.goo.gl';
+    return supportedHost
+      && (url.hostname === 'maps.app.goo.gl' || url.pathname.startsWith('/maps'));
+  } catch {
+    return false;
+  }
+}
+
 function validateGuide(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
   const name = typeof input.name === 'string' ? input.name.trim() : '';
@@ -78,7 +93,7 @@ function validateGuide(input) {
     const hotelName = typeof hotel.name === 'string' ? hotel.name.trim() : '';
     const location = typeof hotel.location === 'string' ? hotel.location.trim() : '';
     if (hotelName.length > 80 || location.length > 500) return null;
-    if (location && !isSafeUrl(location) && !/^\s*-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?\s*$/.test(location)) return null;
+    if (location && !isGoogleMapsUrl(location)) return null;
     if (!hotel.lists || typeof hotel.lists !== 'object' || Array.isArray(hotel.lists)) return null;
 
     const lists = {};
