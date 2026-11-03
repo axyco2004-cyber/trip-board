@@ -150,17 +150,13 @@ function parseDestinationCatalog(value) {
   if (typeof value !== 'string') return [...DEFAULT_DESTINATIONS];
   try {
     const parsed = JSON.parse(value);
-    if (!Array.isArray(parsed)) return [...DEFAULT_DESTINATIONS];
-    const destinations = parsed.filter(destination => destination
-      && typeof destination.id === 'string'
-      && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(destination.id)
-      && typeof destination.name === 'string'
-      && typeof destination.country === 'string');
-    const byId = new Map(destinations.map(destination => [destination.id, destination]));
-    return [
-      ...DEFAULT_DESTINATIONS.map(destination => byId.get(destination.id) || destination),
-      ...destinations.filter(destination => !DESTINATION_IDS.includes(destination.id))
-    ];
+    if (!Array.isArray(parsed) || !parsed.length) return [...DEFAULT_DESTINATIONS];
+    if (parsed.some(destination => !destination
+      || typeof destination.id !== 'string'
+      || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(destination.id)
+      || typeof destination.name !== 'string'
+      || typeof destination.country !== 'string')) return [...DEFAULT_DESTINATIONS];
+    return parsed;
   } catch {
     return [...DEFAULT_DESTINATIONS];
   }
@@ -240,7 +236,7 @@ module.exports = async function handler(req, res) {
         if (!isAdminPasswordValid(req)) return sendError(res, 401, 'Admin password is incorrect.');
         return res.status(200).json({ authorized: true });
       }
-      if (body?.adminAction === 'createDestination' || body?.adminAction === 'renameDestination') {
+      if (['createDestination', 'renameDestination', 'deleteDestination'].includes(body?.adminAction)) {
         if (typeof process.env.CA2026_ADMIN_PASSWORD !== 'string'
           || process.env.CA2026_ADMIN_PASSWORD.length < 16) {
           return sendError(res, 503, 'Destination admin access is not configured.');
@@ -250,11 +246,36 @@ module.exports = async function handler(req, res) {
 
         const catalogValue = await redisCommand('GET', DESTINATIONS_KEY);
         const destinations = parseDestinationCatalog(catalogValue);
+        if (body.adminAction === 'deleteDestination') {
+          const destinationId = body.destinationId;
+          if (typeof destinationId !== 'string' || !destinations.some(destination => destination.id === destinationId)) {
+            return sendError(res, 400, 'Choose a valid destination.');
+          }
+          const script = [
+            "local raw = redis.call('GET', KEYS[1])",
+            "local destinations = raw and cjson.decode(raw) or cjson.decode(ARGV[1])",
+            "if #destinations <= 1 then return -1 end",
+            "for index, item in ipairs(destinations) do",
+            "  if item.id == ARGV[2] then table.remove(destinations, index); redis.call('SET', KEYS[1], cjson.encode(destinations)); return 1 end",
+            "end",
+            "return 0"
+          ].join('\n');
+          const result = await redisCommand('EVAL', script, '1', DESTINATIONS_KEY,
+            JSON.stringify(DEFAULT_DESTINATIONS), destinationId);
+          if (result === -1) return sendError(res, 400, 'At least one destination must remain in the menu.');
+          if (result !== 1) return sendError(res, 409, 'That destination is no longer in the menu. Refresh and try again.');
+          return res.status(200).json({ destinationId, destinations: parseDestinationCatalog(await redisCommand('GET', DESTINATIONS_KEY)) });
+        }
         if (body.adminAction === 'createDestination') {
           const input = validateDestinationInput(body.destination);
           if (!input) return sendError(res, 400, 'Enter a valid destination name and optional details.');
           if (destinations.length >= MAX_DESTINATIONS) return sendError(res, 400, 'The destination limit has been reached.');
-          const id = destinationIdForName(input.name, new Set(destinations.map(destination => destination.id)));
+          const reservedIds = new Set([...DESTINATION_IDS, ...destinations.map(destination => destination.id)]);
+          let id = destinationIdForName(input.name, reservedIds);
+          let suffix = 2;
+          while (await redisCommand('EXISTS', `${BOARD_KEY}:${id}`)) {
+            id = `${destinationIdForName(input.name, reservedIds)}-${suffix++}`;
+          }
           const destination = { id, ...input, mapSearch: '' };
           const guide = emptyGuide(destination);
           const script = [

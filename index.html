@@ -266,7 +266,7 @@
       <div class="destination-grid" id="destinationGrid" role="group" aria-label="Choose a destination"></div>
       <details class="guide-editor destination-admin" id="destinationAdmin" open>
         <summary>Admin: manage destination menu</summary>
-        <p class="field-hint">Add destinations or rename their menu labels. This panel stays open. Use the same admin password configured privately in Vercel as CA2026_ADMIN_PASSWORD.</p>
+        <p class="field-hint">Add, rename, or remove destinations from the menu. Removed destinations keep their guide and comments in storage. This panel stays open. Use the same admin password configured privately in Vercel as CA2026_ADMIN_PASSWORD.</p>
         <form class="comment-admin-form" id="destinationAdminAuthForm">
           <div class="field"><label for="destinationAdminPassword">Admin password</label><input id="destinationAdminPassword" name="password" type="password" required autocomplete="current-password"></div>
           <button class="button button-outline" id="destinationAdminSubmit" type="submit">Unlock destination admin</button>
@@ -1099,8 +1099,8 @@
           mapSearch: typeof destination.mapSearch === 'string' ? destination.mapSearch : ''
         });
       }
-      if (!normalized.some(destination => destination.id === defaultDestinationId)) {
-        throw new Error('The shared destination catalog is missing the default destination.');
+      if (!normalized.length) {
+        throw new Error('The shared destination catalog must contain at least one destination.');
       }
       return normalized;
     }
@@ -1132,7 +1132,9 @@
         const hasDirtyGuide = destinationFormDirty || hotelFormsDirty;
         const unsavedGuide = hasDirtyGuide ? destinationState.guides[selectedId] : null;
         destinationState = loadDestinationState({ selectedId, guides: data.guides });
-        activeDestinationId = destinations.some(destination => destination.id === selectedId) ? selectedId : defaultDestinationId;
+        activeDestinationId = destinations.some(destination => destination.id === selectedId)
+          ? selectedId
+          : destinations[0]?.id || defaultDestinationId;
         if (unsavedGuide) destinationState.guides[selectedId] = unsavedGuide;
         activeDestination = destinations.find(destination => destination.id === activeDestinationId);
         destinationState.selectedId = activeDestinationId;
@@ -1186,7 +1188,10 @@
         const credit = guide.photoCreditLabel
           ? `<p class="photo-credit">Photo: ${guide.photoCreditUrl ? `<a href="${safeText(guide.photoCreditUrl)}" target="_blank" rel="noopener noreferrer">${safeText(guide.photoCreditLabel)}</a>` : safeText(guide.photoCreditLabel)}</p>`
           : '';
-        return `<article class="destination-item"><button class="destination-card" type="button" data-destination="${destination.id}" aria-pressed="${destination.id === activeDestinationId}" aria-label="Show ${safeText(name)} guide">${photo}<span class="destination-name">${safeText(name)}</span></button>${credit}</article>`;
+        const deleteButton = destinationAdminPassword
+          ? `<button class="delete-button destination-delete" type="button" data-destination-delete="${safeText(destination.id)}" aria-label="Remove ${safeText(name)} from the destination menu">Delete destination</button>`
+          : '';
+        return `<article class="destination-item"><button class="destination-card" type="button" data-destination="${safeText(destination.id)}" aria-pressed="${destination.id === activeDestinationId}" aria-label="Show ${safeText(name)} guide">${photo}<span class="destination-name">${safeText(name)}</span></button>${credit}${deleteButton}</article>`;
       }).join('');
       document.querySelectorAll('.destination-card').forEach(button => button.addEventListener('click', async () => {
         if (button.dataset.destination === activeDestinationId || !await saveActiveGuide(false)) return;
@@ -1197,6 +1202,9 @@
         renderDestinationGuide();
         renderSessionDestinationOptions();
         render();
+      }));
+      document.querySelectorAll('.destination-delete').forEach(button => button.addEventListener('click', () => {
+        deleteDestination(button.dataset.destinationDelete);
       }));
       renderDestinationAdminSelect();
     }
@@ -1400,6 +1408,37 @@
       render();
       document.getElementById('destinationCreateForm').reset();
       setDestinationAdminUnlocked(true, `${result.destination.name} was added. Add hotel names and guide details below.`);
+    }
+    async function deleteDestination(destinationId) {
+      if (!destinationAdminPassword) {
+        showToast('Unlock destination admin to remove a destination.');
+        return;
+      }
+      const destination = destinations.find(item => item.id === destinationId);
+      if (!destination) return;
+      if (!window.confirm(`Remove "${destinationName(destinationId)}" from the destination menu? Its guide and comments will remain stored.`)) return;
+      if (destinationId === activeDestinationId && !await saveActiveGuide(false)) return;
+      try {
+        const result = await postDestinationAdminAction({ adminAction: 'deleteDestination', destinationId });
+        if (!Array.isArray(result.destinations) || !result.destinations.length) {
+          throw new Error('The updated destination menu response was invalid.');
+        }
+        destinations = normalizeDestinationCatalog(result.destinations);
+        if (!destinations.some(item => item.id === activeDestinationId)) {
+          activeDestinationId = destinations[0].id;
+        }
+        activeDestination = destinations.find(item => item.id === activeDestinationId);
+        destinationState.selectedId = activeDestinationId;
+        saveDestinationLocally();
+        renderDestinationMenu();
+        renderDestinationGuide();
+        renderSessionDestinationOptions();
+        renderSessionPosts();
+        render();
+        setDestinationAdminUnlocked(true, `${destination.name} was removed from the menu. Its guide and comments remain stored.`);
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : 'Could not remove this destination.');
+      }
     }
     function saveHotelGuides(announce) { return saveActiveGuide(announce); }
     function saveCurrentGuide(announce) { return saveActiveGuide(announce); }
