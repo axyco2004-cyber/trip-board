@@ -929,9 +929,12 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ destinationId, guide: destinationState.guides[destinationId] })
         });
-        if (!response.ok) throw new Error(`Could not save shared destination (${response.status}).`);
-      } catch {
-        showToast('Could not save this shared guide. Check your connection and try again.');
+        if (!response.ok) {
+          const result = await response.json().catch(() => null);
+          throw new Error(result?.error || `Could not save shared destination (${response.status}).`);
+        }
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : 'Could not save this shared guide. Check your connection and try again.');
         return false;
       }
       saveDestinationLocally();
@@ -1105,13 +1108,18 @@
           showToast('Enter GPS coordinates as latitude, longitude or a full http(s) Google Maps link.');
           return null;
         }
+        const lists = Object.fromEntries(categories.map(category => [
+          category,
+          data[category].split(/\r?\n/).map(item => item.trim()).filter(Boolean).slice(0, 20)
+        ]));
+        if (Object.values(lists).some(items => items.some(item => item.length > 200))) {
+          showToast('Each hotel recommendation must be 200 characters or fewer.');
+          return null;
+        }
         return {
           name: data.name.trim() || `Hotel ${Number(form.dataset.hotelIndex) + 1}`,
           location,
-          lists: Object.fromEntries(categories.map(category => [
-            category,
-            data[category].split(/\r?\n/).map(item => item.trim()).filter(Boolean).slice(0, 20)
-          ]))
+          lists
         };
       });
       const form = document.getElementById('destinationForm');
