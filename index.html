@@ -16,7 +16,7 @@
       --muted: #78817b;
       --line: #dfded4;
       --white: #fffefa;
-      --green: #2f6b55;
+      --green: #2f506b;
       --green-dark: #214f40;
       --orange: #e77a52;
       --yellow: #f3c754;
@@ -25,6 +25,7 @@
       --sans: "DM Sans", sans-serif;
     }
     * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
     body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 14px; }
     button, input, textarea, select { font: inherit; }
     button { cursor: pointer; }
@@ -111,11 +112,19 @@
     .session-empty { margin: 0; padding: 18px 10px; color: var(--muted); text-align: center; }
     .session-post { padding: 13px 15px; border-radius: 5px; background: #f6f3eb; }
     .session-post-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 7px; margin-bottom: 6px; }
-    .session-post-delete { margin-left: auto; padding: 2px 4px; font-size: 10px; }
+    .session-post-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+    .session-post-delete, .session-post-edit { padding: 2px 4px; font-size: 10px; }
     .session-post-author { font-weight: 700; }
     .session-post-type { padding: 2px 6px; border-radius: 3px; background: #e7eee6; color: var(--green); font-size: 9px; font-weight: 700; text-transform: uppercase; }
     .session-post-context, .session-post-time { color: var(--muted); font-size: 10px; }
     .session-post-text { margin: 0; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .comment-admin { margin: 12px 0 16px; }
+    .comment-admin[open] { padding: 12px; border: 1px solid var(--line); border-radius: 5px; }
+    .comment-admin-form { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
+    .comment-admin-form .field { flex: 1 1 220px; margin: 0; }
+    .comment-admin-status { margin: 8px 0 0; color: var(--green); font-size: 12px; }
+    .comment-edit-form { margin-top: 10px; }
+    .comment-edit-form .form-actions { justify-content: flex-start; }
     .stats { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0 0 27px; border: 1px solid var(--line); border-top: 0; background: rgba(255,254,250,.55); }
     .stat { display: flex; gap: 11px; align-items: center; padding: 15px 20px; border-right: 1px solid var(--line); }
     .stat:last-child { border-right: 0; }
@@ -253,8 +262,30 @@
     </section>
     <section class="destination-picker" aria-labelledby="destinationHeading">
       <h2 id="destinationHeading">Layover destinations</h2>
-      <p class="destination-intro">The crew, places, destination menus and hotel guides are shared and editable by anyone with this link. Tips and comments are shared too.</p>
+      <p class="destination-intro">Destination menu names and additions are managed by an admin. Hotel guides, places and crew are shared and editable by anyone with this link. Tips and comments are shared too.</p>
       <div class="destination-grid" id="destinationGrid" role="group" aria-label="Choose a destination"></div>
+      <details class="guide-editor destination-admin" id="destinationAdmin" open>
+        <summary>Admin: manage destination menu</summary>
+        <p class="field-hint">Add destinations or rename their menu labels. This panel stays open. Use the same admin password configured privately in Vercel as CA2026_ADMIN_PASSWORD.</p>
+        <form class="comment-admin-form" id="destinationAdminAuthForm">
+          <div class="field"><label for="destinationAdminPassword">Admin password</label><input id="destinationAdminPassword" name="password" type="password" required autocomplete="current-password"></div>
+          <button class="button button-outline" id="destinationAdminSubmit" type="submit">Unlock destination admin</button>
+          <button class="button button-outline" id="destinationAdminLock" type="button" hidden>Lock</button>
+        </form>
+        <p class="comment-admin-status" id="destinationAdminStatus" role="status" hidden></p>
+        <div id="destinationAdminTools" hidden>
+          <form id="destinationRenameForm">
+            <div class="field"><label for="destinationRenameSelect">Destination to rename</label><select id="destinationRenameSelect" name="destinationId"></select></div>
+            <div class="field"><label for="destinationRenameInput">Menu name *</label><input id="destinationRenameInput" name="name" required maxlength="60"></div>
+            <div class="guide-save-row"><button type="submit" class="button button-green">Save destination name</button></div>
+          </form>
+          <form id="destinationCreateForm" style="margin-top:20px">
+            <div class="field"><label for="newDestinationName">New destination name *</label><input id="newDestinationName" name="name" required maxlength="60" placeholder="Copenhagen"></div>
+            <div class="field"><label for="newDestinationCountry">Country or area</label><input id="newDestinationCountry" name="country" maxlength="60" placeholder="Denmark"></div>
+            <div class="guide-save-row"><button type="submit" class="button button-green">Add destination</button></div>
+          </form>
+        </div>
+      </details>
     </section>
     <section class="destination-guide" aria-labelledby="guideTitle">
       <header class="destination-guide-header">
@@ -265,19 +296,29 @@
       <details class="guide-editor" style="margin-top:16px">
         <summary>Edit destination menu, photo and map</summary>
         <form id="destinationForm">
-          <div class="field"><label for="destinationNameInput">Destination menu name *</label><input id="destinationNameInput" name="name" required maxlength="60" placeholder="Other"></div>
           <div class="field"><label for="destinationCountryInput">Country or area</label><input id="destinationCountryInput" name="country" maxlength="60" placeholder="Optional"></div>
           <div class="field"><label for="destinationPhotoInput">Photo URL <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input id="destinationPhotoInput" name="photoUrl" type="url" placeholder="https://..."><span class="field-hint">Update the photo credit below when you replace the image.</span></div>
           <div class="field"><label for="destinationCreditInput">Photo credit <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input id="destinationCreditInput" name="photoCreditLabel" maxlength="120" placeholder="Photographer and license"></div>
           <div class="field"><label for="destinationCreditUrlInput">Photo credit link <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input id="destinationCreditUrlInput" name="photoCreditUrl" type="url" placeholder="https://..."></div>
           <div class="field"><label for="destinationMapsInput">Google Maps link <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input id="destinationMapsInput" name="mapsUrl" type="url" placeholder="Paste a Google Maps link"><span class="field-hint">Leave blank to use a Google Maps search for this destination.</span></div>
-          <div class="guide-save-row"><button type="submit" class="button button-green">Save shared destination</button><p class="guide-save-note">Anyone with the public link can edit this shared guide.</p></div>
+          <div class="guide-save-row"><button type="submit" class="button button-green">Save shared destination</button><p class="guide-save-note">Hotel and destination details are shared with everyone.</p></div>
         </form>
       </details>
     </section>
     <section class="session-board" aria-labelledby="sessionHeading">
       <h2 id="sessionHeading">Tips &amp; comments</h2>
       <p class="session-intro">Share a tip or comment with the crew. Posts sync across devices and are visible to everyone with the trip link.</p>
+      <details class="comment-admin" id="commentAdmin" open>
+        <summary>Admin: edit or delete any comment</summary>
+        <p class="field-hint">Unlock to show edit and delete buttons on all comments, old and new. Authors can still delete their own posts.</p>
+        <form class="comment-admin-form" id="commentAdminForm">
+          <div class="field"><label for="commentAdminPassword">Admin password</label><input id="commentAdminPassword" name="password" type="password" required autocomplete="current-password"></div>
+          <button class="button button-outline" id="commentAdminSubmit" type="submit">Unlock admin controls</button>
+          <button class="button button-outline" id="commentAdminLock" type="button" hidden>Lock</button>
+        </form>
+        <span class="field-hint">The password is configured privately in Vercel as CA2026_ADMIN_PASSWORD.</span>
+        <p class="comment-admin-status" id="commentAdminStatus" role="status" hidden></p>
+      </details>
       <form class="session-form" id="sessionForm">
         <div class="field"><label for="sessionAuthor">Your name *</label><input id="sessionAuthor" name="author" required maxlength="50" placeholder="Name from the crew"></div>
         <div class="field"><label for="sessionType">Post type</label><select id="sessionType" name="type"><option value="tip">Tip</option><option value="comment">Comment</option></select></div>
@@ -377,7 +418,7 @@
     const sharedListsApiUrl = 'https://trip-board-eta.vercel.app/api/shared-lists';
     const publicTripUrl = 'https://trip-board-eta.vercel.app/';
     const defaultCrew = ['SAS CA 26', '- Inga', '~ Pernille', '~ Samina', '~ Johan', '~ Anna', '~ Maren', '~ Tilde', '~ Charlotte', '- Liviu', '~ Natacha', '~ Joh', '- Giada', '~ My', '- Gonçalo', '~ Alexandru', '~ Jona V', '~ Catalina', '~ Yonaikel', '~ Berta', '~ Ellynor'];
-    const destinations = [
+    const defaultDestinations = [
       { id: 'gothenburg', name: 'Gothenburg', country: 'Sweden', photoUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/Karlatornet_along_with_Gothenburg_skyline..jpg/960px-Karlatornet_along_with_Gothenburg_skyline..jpg', photoCreditLabel: 'Axadem · CC BY-SA 4.0', photoCreditUrl: 'https://commons.wikimedia.org/wiki/File:Karlatornet_along_with_Gothenburg_skyline..jpg' },
       { id: 'gdansk', name: 'Gdansk', country: 'Poland', photoUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/21/Gdansk_Gora_Gradowa_2.jpg/960px-Gdansk_Gora_Gradowa_2.jpg', photoCreditLabel: 'Andrzej Otrębski · CC BY-SA 3.0', photoCreditUrl: 'https://commons.wikimedia.org/wiki/File:Gdansk_Gora_Gradowa_2.jpg' },
       { id: 'oslo', name: 'Oslo', country: 'Norway', photoUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/Oslo_Skyline%2C_drone.jpg/960px-Oslo_Skyline%2C_drone.jpg', photoCreditLabel: 'Sunderland Renaissance · CC BY-SA 4.0', photoCreditUrl: 'https://commons.wikimedia.org/wiki/File:Oslo_Skyline,_drone.jpg' },
@@ -385,6 +426,7 @@
       { id: 'stockholm', name: 'Stockholm', country: 'Sweden', photoUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/14/Stockholm_city_skyline_and_waterfront_at_night_%28April_2016%29.jpg/960px-Stockholm_city_skyline_and_waterfront_at_night_%28April_2016%29.jpg', photoCreditLabel: 'Micael Widell · CC BY 3.0', photoCreditUrl: 'https://commons.wikimedia.org/wiki/File:Stockholm_city_skyline_and_waterfront_at_night_(April_2016).jpg' },
       { id: 'others', name: 'Other', country: '', mapSearch: 'Europe', photoUrl: '', photoCreditLabel: '', photoCreditUrl: '' }
     ];
+    let destinations = [...defaultDestinations];
     const migratedDestinationData = {
       selectedId: 'others',
       guides: {
@@ -412,6 +454,9 @@
     let sessionPosts = loadSessionPosts();
     let sessionPostTokens = loadSessionPostTokens();
     let syncedSessionPostIds = loadSyncedSessionPostIds();
+    let commentAdminPassword = '';
+    let destinationAdminPassword = '';
+    let editingAdminCommentId = null;
     let sessionPostsSyncing = false;
     let commentsSyncWarningShown = false;
     let destinationStateSyncing = false;
@@ -745,22 +790,51 @@
     }
     async function deleteSharedSessionPost(post) {
       const deleteToken = sessionPostTokens[post.id];
-      if (!deleteToken) return;
+      const useAdmin = !deleteToken && Boolean(commentAdminPassword);
+      if (!deleteToken && !useAdmin) return;
       try {
         const response = await fetch(sessionPostsApiUrl, {
           method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: post.id, deleteToken })
+          headers: {
+            'Content-Type': 'application/json',
+            ...(useAdmin ? { 'X-Admin-Password': commentAdminPassword } : {})
+          },
+          body: JSON.stringify({ id: post.id, ...(deleteToken ? { deleteToken } : {}) })
         });
-        if (!response.ok) throw new Error(`Could not delete the shared comment (${response.status}).`);
+        if (!response.ok) {
+          const result = await response.json().catch(() => null);
+          throw new Error(result?.error || `Could not delete the shared comment (${response.status}).`);
+        }
         sessionPosts = sessionPosts.filter(item => item.id !== post.id);
         delete sessionPostTokens[post.id];
         saveSessionPostTokens();
         saveSessionPosts();
         renderSessionPosts();
         showToast('Post deleted for everyone.');
-      } catch {
-        showToast('Could not delete this shared post. Please try again.');
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : 'Could not delete this shared post. Please try again.');
+      }
+    }
+    async function editSharedSessionPost(post, author, text) {
+      try {
+        const response = await fetch(sessionPostsApiUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Admin-Password': commentAdminPassword
+          },
+          body: JSON.stringify({ id: post.id, author, text })
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok) throw new Error(result?.error || `Could not update the comment (${response.status}).`);
+        if (!isSessionPost(result?.post)) throw new Error('The updated comment response was invalid.');
+        sessionPosts = sortSessionPosts(sessionPosts.map(item => item.id === post.id ? result.post : item));
+        saveSessionPosts();
+        editingAdminCommentId = null;
+        renderSessionPosts();
+        showToast('Comment updated for everyone.');
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : 'Could not update the shared comment.');
       }
     }
     function renderSessionPosts() {
@@ -796,19 +870,81 @@
         const createdAt = new Date(post.createdAt);
         time.textContent = Number.isNaN(createdAt.getTime()) ? '' : createdAt.toLocaleString();
         header.append(author, type, context, time);
-        if (sessionPostTokens[post.id]) {
+        if (sessionPostTokens[post.id] || commentAdminPassword) {
+          const actions = document.createElement('div');
+          actions.className = 'session-post-actions';
+          if (commentAdminPassword) {
+            const editButton = document.createElement('button');
+            editButton.type = 'button';
+            editButton.className = 'button button-outline session-post-edit';
+            editButton.textContent = 'Edit';
+            editButton.setAttribute('aria-label', `Edit comment by ${post.author}`);
+            editButton.addEventListener('click', () => {
+              editingAdminCommentId = editingAdminCommentId === post.id ? null : post.id;
+              renderSessionPosts();
+            });
+            actions.append(editButton);
+          }
           const deleteButton = document.createElement('button');
           deleteButton.type = 'button';
           deleteButton.className = 'delete-button session-post-delete';
           deleteButton.textContent = 'Delete';
           deleteButton.setAttribute('aria-label', `Delete ${post.type} by ${post.author}`);
           deleteButton.addEventListener('click', () => deleteSharedSessionPost(post));
-          header.append(deleteButton);
+          actions.append(deleteButton);
+          header.append(actions);
         }
         const text = document.createElement('p');
         text.className = 'session-post-text';
         text.textContent = post.text;
         article.append(header, text);
+        if (commentAdminPassword && editingAdminCommentId === post.id) {
+          const form = document.createElement('form');
+          form.className = 'comment-edit-form';
+          const authorField = document.createElement('div');
+          authorField.className = 'field';
+          const authorLabel = document.createElement('label');
+          authorLabel.textContent = 'Name';
+          const authorInput = document.createElement('input');
+          authorInput.name = 'author';
+          authorInput.maxLength = 50;
+          authorInput.required = true;
+          authorInput.value = post.author;
+          authorLabel.append(authorInput);
+          authorField.append(authorLabel);
+          const textField = document.createElement('div');
+          textField.className = 'field';
+          const textLabel = document.createElement('label');
+          textLabel.textContent = 'Comment';
+          const textInput = document.createElement('textarea');
+          textInput.name = 'text';
+          textInput.maxLength = 800;
+          textInput.required = true;
+          textInput.value = post.text;
+          textLabel.append(textInput);
+          textField.append(textLabel);
+          const actions = document.createElement('div');
+          actions.className = 'form-actions';
+          const saveButton = document.createElement('button');
+          saveButton.type = 'submit';
+          saveButton.className = 'button button-green';
+          saveButton.textContent = 'Save comment';
+          const cancelButton = document.createElement('button');
+          cancelButton.type = 'button';
+          cancelButton.className = 'button button-outline';
+          cancelButton.textContent = 'Cancel';
+          cancelButton.addEventListener('click', () => {
+            editingAdminCommentId = null;
+            renderSessionPosts();
+          });
+          actions.append(saveButton, cancelButton);
+          form.append(authorField, textField, actions);
+          form.addEventListener('submit', event => {
+            event.preventDefault();
+            editSharedSessionPost(post, authorInput.value.trim(), textInput.value.trim());
+          });
+          article.append(form);
+        }
         container.append(article);
       });
     }
@@ -940,6 +1076,34 @@
       saveDestinationLocally();
       return true;
     }
+    function normalizeDestinationCatalog(catalog) {
+      if (!Array.isArray(catalog)) return [...defaultDestinations];
+      const seen = new Set();
+      const normalized = [];
+      for (const destination of catalog) {
+        if (!destination || typeof destination.id !== 'string'
+          || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(destination.id)
+          || seen.has(destination.id)
+          || typeof destination.name !== 'string' || !destination.name.trim()
+          || typeof destination.country !== 'string') {
+          throw new Error('The shared destination catalog was invalid.');
+        }
+        seen.add(destination.id);
+        const defaults = defaultDestinations.find(item => item.id === destination.id) || {};
+        normalized.push({
+          ...defaults,
+          ...destination,
+          photoUrl: normalizeWebUrl(destination.photoUrl) || '',
+          photoCreditLabel: typeof destination.photoCreditLabel === 'string' ? destination.photoCreditLabel : '',
+          photoCreditUrl: normalizeWebUrl(destination.photoCreditUrl) || '',
+          mapSearch: typeof destination.mapSearch === 'string' ? destination.mapSearch : ''
+        });
+      }
+      if (!normalized.some(destination => destination.id === defaultDestinationId)) {
+        throw new Error('The shared destination catalog is missing the default destination.');
+      }
+      return normalized;
+    }
     async function syncDestinationState() {
       if (destinationStateSyncing || document.visibilityState === 'hidden'
         || destinationFormDirty || hotelFormsDirty) return;
@@ -963,6 +1127,7 @@
           data = await response.json();
         }
         if (!data.guides || typeof data.guides !== 'object') throw new Error('The shared destination response was invalid.');
+        if (Array.isArray(data.destinations)) destinations = normalizeDestinationCatalog(data.destinations);
         const selectedId = activeDestinationId;
         const hasDirtyGuide = destinationFormDirty || hotelFormsDirty;
         const unsavedGuide = hasDirtyGuide ? destinationState.guides[selectedId] : null;
@@ -975,6 +1140,7 @@
         destinationStateSyncReady = true;
         if (hasDirtyGuide) return;
         renderDestinationMenu();
+        renderDestinationAdminSelect();
         renderDestinationGuide();
         renderSessionDestinationOptions();
         renderSessionPosts();
@@ -1004,6 +1170,14 @@
         : destination.mapSearch || [guide.name, guide.country].filter(Boolean).join(', ');
       return guide.mapsUrl || 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(location);
     }
+    function renderDestinationAdminSelect() {
+      const select = document.getElementById('destinationRenameSelect');
+      const selectedId = destinations.some(destination => destination.id === select.value) ? select.value : activeDestinationId;
+      select.replaceChildren(...destinations.map(destination => new Option(destinationName(destination.id), destination.id)));
+      select.value = selectedId;
+      const nameInput = document.getElementById('destinationRenameInput');
+      if (document.activeElement !== nameInput) nameInput.value = destinationName(select.value);
+    }
     function renderDestinationMenu() {
       document.getElementById('destinationGrid').innerHTML = destinations.map(destination => {
         const guide = destinationState.guides[destination.id];
@@ -1024,6 +1198,7 @@
         renderSessionDestinationOptions();
         render();
       }));
+      renderDestinationAdminSelect();
     }
     function renderDestinationGuide() {
       const guide = activeGuide();
@@ -1090,7 +1265,6 @@
       mapLink.href = destinationMapUrl(activeDestination, guide);
       mapLink.setAttribute('aria-label', `Open ${activeDestinationName()} in Google Maps`);
       const form = document.getElementById('destinationForm');
-      form.elements.name.value = guide.name;
       form.elements.country.value = guide.country;
       form.elements.photoUrl.value = guide.photoUrl;
       form.elements.photoCreditLabel.value = guide.photoCreditLabel;
@@ -1127,10 +1301,11 @@
       const photoUrl = normalizeWebUrl(data.photoUrl.trim());
       const photoCreditUrl = normalizeWebUrl(data.photoCreditUrl.trim());
       const mapsUrl = normalizeWebUrl(data.mapsUrl.trim());
-      const name = data.name.trim();
+      const previousGuide = activeGuide();
+      const name = previousGuide.name.trim();
       const country = data.country.trim();
       if (nextHotels.some(hotel => !hotel)) return false;
-      if (!name) { showToast('Add a name for this destination menu.'); return false; }
+      if (!name) { showToast('The destination needs a name.'); return false; }
       if (data.photoUrl.trim() && !photoUrl) { showToast('Enter a full http(s) photo URL.'); return false; }
       if (data.photoCreditUrl.trim() && !photoCreditUrl) { showToast('Enter a full http(s) photo credit link.'); return false; }
       if (data.mapsUrl.trim() && !mapsUrl) { showToast('Enter a full http(s) Google Maps link.'); return false; }
@@ -1143,7 +1318,6 @@
         photoCreditUrl,
         mapsUrl
       };
-      const previousGuide = activeGuide();
       if (JSON.stringify(nextGuide) === JSON.stringify(previousGuide)) {
         destinationFormDirty = false;
         hotelFormsDirty = false;
@@ -1163,6 +1337,69 @@
       render();
       if (announce) showToast(`${activeDestinationName()} guide shared with everyone.`);
       return true;
+    }
+    async function postDestinationAdminAction(payload) {
+      const response = await fetch(destinationGuidesApiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Password': destinationAdminPassword
+        },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(result?.error || `Destination admin request failed (${response.status}).`);
+      return result;
+    }
+    function setDestinationAdminUnlocked(unlocked, message) {
+      document.getElementById('destinationAdmin').open = true;
+      document.getElementById('destinationAdminPassword').hidden = unlocked;
+      document.querySelector('label[for="destinationAdminPassword"]').hidden = unlocked;
+      document.getElementById('destinationAdminSubmit').hidden = unlocked;
+      document.getElementById('destinationAdminLock').hidden = !unlocked;
+      document.getElementById('destinationAdminTools').hidden = !unlocked;
+      const status = document.getElementById('destinationAdminStatus');
+      status.textContent = message;
+      status.hidden = !message;
+    }
+    function applyRenamedDestination(destination, guide) {
+      destinations = destinations.map(item => item.id === destination.id ? { ...item, name: destination.name } : item);
+      destinationState.guides[destination.id] = destination.id === activeDestinationId
+        && (destinationFormDirty || hotelFormsDirty)
+        ? { ...destinationState.guides[destination.id], name: destination.name }
+        : guide;
+      activeDestination = destinations.find(item => item.id === activeDestinationId);
+      saveDestinationLocally();
+      renderDestinationMenu();
+      renderDestinationGuide();
+      renderSessionDestinationOptions();
+      renderSessionPosts();
+      render();
+    }
+    async function renameDestination(destinationId, name) {
+      if (!destinationAdminPassword) throw new Error('Unlock destination admin first.');
+      const result = await postDestinationAdminAction({ adminAction: 'renameDestination', destinationId, name });
+      applyRenamedDestination(result.destination, result.guide);
+      setDestinationAdminUnlocked(true, `${result.destination.name} is now the destination menu name.`);
+    }
+    async function addDestination(name, country) {
+      if (!destinationAdminPassword) throw new Error('Unlock destination admin first.');
+      const result = await postDestinationAdminAction({
+        adminAction: 'createDestination',
+        destination: { name, country }
+      });
+      destinations = [...destinations, result.destination];
+      destinationState.guides[result.destination.id] = result.guide;
+      activeDestinationId = result.destination.id;
+      activeDestination = result.destination;
+      saveDestinationLocally();
+      renderDestinationMenu();
+      renderDestinationGuide();
+      renderSessionDestinationOptions();
+      renderSessionPosts();
+      render();
+      document.getElementById('destinationCreateForm').reset();
+      setDestinationAdminUnlocked(true, `${result.destination.name} was added. Add hotel names and guide details below.`);
     }
     function saveHotelGuides(announce) { return saveActiveGuide(announce); }
     function saveCurrentGuide(announce) { return saveActiveGuide(announce); }
@@ -1301,6 +1538,52 @@
       event.preventDefault();
       await saveCurrentGuide(true);
     });
+    document.getElementById('destinationRenameSelect').addEventListener('change', event => {
+      document.getElementById('destinationRenameInput').value = destinationName(event.currentTarget.value);
+    });
+    document.getElementById('destinationAdminAuthForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const password = form.elements.password.value;
+      try {
+        const response = await fetch(destinationGuidesApiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
+          body: JSON.stringify({ adminAction: 'verify' })
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok || result?.authorized !== true) {
+          throw new Error(result?.error || `Could not unlock destination admin (${response.status}).`);
+        }
+        destinationAdminPassword = password;
+        form.elements.password.value = '';
+        setDestinationAdminUnlocked(true, 'Admin unlocked in this tab. The destination manager stays open.');
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : 'Could not unlock destination admin.');
+      }
+    });
+    document.getElementById('destinationAdminLock').addEventListener('click', () => {
+      destinationAdminPassword = '';
+      setDestinationAdminUnlocked(false, 'Destination admin is locked.');
+    });
+    document.getElementById('destinationRenameForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const formData = new FormData(event.currentTarget);
+      try {
+        await renameDestination(String(formData.get('destinationId')), String(formData.get('name')).trim());
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : 'Could not rename this destination.');
+      }
+    });
+    document.getElementById('destinationCreateForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      try {
+        await addDestination(form.elements.name.value.trim(), form.elements.country.value.trim());
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : 'Could not add this destination.');
+      }
+    });
     document.getElementById('placeForm').addEventListener('input', () => { placesFormDirty = true; });
     document.getElementById('placeForm').addEventListener('change', () => { placesFormDirty = true; });
     document.getElementById('placeForm').addEventListener('submit', async event => {
@@ -1390,6 +1673,50 @@
       } finally {
         input.value = '';
       }
+    });
+    document.getElementById('commentAdminForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const password = form.elements.password.value;
+      try {
+        const response = await fetch(sessionPostsApiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Admin-Password': password
+          },
+          body: JSON.stringify({ adminAction: 'verify' })
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok || result?.authorized !== true) {
+          throw new Error(result?.error || `Could not unlock admin controls (${response.status}).`);
+        }
+        commentAdminPassword = password;
+        form.elements.password.value = '';
+        form.elements.password.hidden = true;
+        form.querySelector('label[for="commentAdminPassword"]').hidden = true;
+        document.getElementById('commentAdminSubmit').hidden = true;
+        document.getElementById('commentAdminLock').hidden = false;
+        const status = document.getElementById('commentAdminStatus');
+        status.textContent = 'Admin controls unlocked for this browser tab.';
+        status.hidden = false;
+        renderSessionPosts();
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : 'Could not unlock admin controls.');
+      }
+    });
+    document.getElementById('commentAdminLock').addEventListener('click', () => {
+      commentAdminPassword = '';
+      editingAdminCommentId = null;
+      const form = document.getElementById('commentAdminForm');
+      form.elements.password.hidden = false;
+      form.querySelector('label[for="commentAdminPassword"]').hidden = false;
+      document.getElementById('commentAdminSubmit').hidden = false;
+      document.getElementById('commentAdminLock').hidden = true;
+      const status = document.getElementById('commentAdminStatus');
+      status.textContent = 'Admin controls locked.';
+      status.hidden = false;
+      renderSessionPosts();
     });
     document.getElementById('sessionForm').addEventListener('submit', async event => {
       event.preventDefault();

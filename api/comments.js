@@ -3,12 +3,16 @@ const { createHash, randomUUID, timingSafeEqual } = require('node:crypto');
 const COMMENTS_KEY = 'ca2026:session-posts';
 const RATE_LIMIT = 40;
 const RATE_WINDOW_SECONDS = 3600;
-const VALID_DESTINATIONS = new Set(['gothenburg', 'gdansk', 'oslo', 'helsinki', 'stockholm', 'others']);
+
+function isValidDestinationId(value) {
+  return typeof value === 'string' && value.length <= 80
+    && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
+}
 
 function setHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Password');
   res.setHeader('Cache-Control', 'no-store');
 }
 
@@ -42,7 +46,7 @@ function validatePost(input) {
   const deleteToken = input.deleteToken;
 
   if (!author || author.length > 50 || !text || text.length > 800
-    || !VALID_DESTINATIONS.has(destinationId)
+    || !isValidDestinationId(destinationId)
     || !['general', '1', '2'].includes(hotel)
     || !['tip', 'comment'].includes(type)
     || Number.isNaN(createdAt.getTime())
@@ -70,6 +74,31 @@ function safeTokenMatch(storedHash, deleteToken) {
   const stored = Buffer.from(storedHash, 'hex');
   const supplied = createHash('sha256').update(deleteToken).digest();
   return stored.length === supplied.length && timingSafeEqual(stored, supplied);
+}
+
+function adminPasswordConfigured() {
+  return typeof process.env.CA2026_ADMIN_PASSWORD === 'string'
+    && process.env.CA2026_ADMIN_PASSWORD.length >= 16;
+}
+
+function isAdminPasswordValid(req) {
+  const supplied = req.headers['x-admin-password'];
+  if (!adminPasswordConfigured() || typeof supplied !== 'string') return false;
+  const expectedHash = createHash('sha256').update(process.env.CA2026_ADMIN_PASSWORD).digest();
+  const suppliedHash = createHash('sha256').update(supplied).digest();
+  return timingSafeEqual(expectedHash, suppliedHash);
+}
+
+function requireAdmin(req, res) {
+  if (!adminPasswordConfigured()) {
+    sendError(res, 503, 'Comment admin access is not configured.');
+    return false;
+  }
+  if (!isAdminPasswordValid(req)) {
+    sendError(res, 401, 'Admin password is incorrect.');
+    return false;
+  }
+  return true;
 }
 
 async function redisCommand(...command) {
@@ -118,7 +147,7 @@ module.exports = async function handler(req, res) {
       const records = await readRecords();
       const posts = records
         .map(({ record }) => postFromRecord(record))
-        .filter(post => VALID_DESTINATIONS.has(post.destinationId))
+        .filter(post => isValidDestinationId(post.destinationId))
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       res.setHeader('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=20');
       return res.status(200).json({ posts });
@@ -128,6 +157,10 @@ module.exports = async function handler(req, res) {
       if (!await rateLimit(req)) return sendError(res, 429, 'Too many posts. Please try again later.');
       const body = parseBody(req);
       if (!body || typeof body !== 'object') return sendError(res, 400, 'Invalid request body.');
+      if (body.adminAction === 'verify') {
+        if (!requireAdmin(req, res)) return;
+        return res.status(200).json({ authorized: true });
+      }
       const inputs = Array.isArray(body.posts) ? body.posts : [body];
       if (!inputs.length || inputs.length > 50) return sendError(res, 400, 'Invalid number of posts.');
 
@@ -143,22 +176,55 @@ module.exports = async function handler(req, res) {
       return res.status(201).json({ posts: normalizedPosts.map(({ post }) => post) });
     }
 
+    if (req.method === 'PUT') {
+      if (!await rateLimit(req)) return sendError(res, 429, 'Too many requests. Please try again later.');
+      if (!requireAdmin(req, res)) return;
+      const body = parseBody(req);
+      if (!body || typeof body !== 'object' || typeof body.id !== 'string'
+        || !/^[a-zA-Z0-9._:-]{1,80}$/.test(body.id)) {
+        return sendError(res, 400, 'A valid comment ID is required.');
+      }
+      const text = typeof body.text === 'string' ? body.text.trim() : '';
+      const author = typeof body.author === 'string' ? body.author.trim() : '';
+      if (!text || text.length > 800 || !author || author.length > 50) {
+        return sendError(res, 400, 'Comment text and author are required and must be within the allowed length.');
+      }
+      const script = `
+        local entries = redis.call('LRANGE', KEYS[1], 0, -1)
+        for index, raw in ipairs(entries) do
+          local ok, record = pcall(cjson.decode, raw)
+          if ok and record.id == ARGV[1] then
+            record.text = ARGV[2]
+            record.author = ARGV[3]
+            local updated = cjson.encode(record)
+            redis.call('LSET', KEYS[1], index - 1, updated)
+            return updated
+          end
+        end
+        return nil
+      `;
+      const updatedRaw = await redisCommand('EVAL', script, 1, COMMENTS_KEY, body.id, text, author);
+      if (typeof updatedRaw !== 'string') return sendError(res, 404, 'Comment not found.');
+      let updated;
+      try { updated = JSON.parse(updatedRaw); }
+      catch { throw new Error('Updated comment record was invalid.'); }
+      return res.status(200).json({ post: postFromRecord(updated) });
+    }
+
     if (req.method === 'DELETE') {
       if (!await rateLimit(req)) return sendError(res, 429, 'Too many requests. Please try again later.');
       const body = parseBody(req);
       if (!body || typeof body !== 'object') return sendError(res, 400, 'Invalid request body.');
-      if (typeof body.id !== 'string' || typeof body.deleteToken !== 'string') {
-        return sendError(res, 400, 'A post ID and deletion token are required.');
-      }
+      if (typeof body.id !== 'string') return sendError(res, 400, 'A post ID is required.');
       const records = await readRecords();
-      const target = records.find(({ record }) => record.id === body.id
-        && safeTokenMatch(record.ownerTokenHash, body.deleteToken));
-      if (!target) return sendError(res, 404, 'Post not found or deletion is not permitted.');
+      const target = records.find(({ record }) => record.id === body.id);
+      if (!target) return sendError(res, 404, 'Post not found.');
+      if (!safeTokenMatch(target.record.ownerTokenHash, body.deleteToken) && !requireAdmin(req, res)) return;
       await redisCommand('LREM', COMMENTS_KEY, 1, target.raw);
       return res.status(204).end();
     }
 
-    res.setHeader('Allow', 'GET, POST, DELETE, OPTIONS');
+    res.setHeader('Allow', 'GET, POST, PUT, DELETE, OPTIONS');
     return sendError(res, 405, 'Method not allowed.');
   } catch (error) {
     console.error('Shared comments API request failed.', {

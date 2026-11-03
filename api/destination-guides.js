@@ -1,15 +1,35 @@
-const { createHash } = require('node:crypto');
+const { createHash, timingSafeEqual } = require('node:crypto');
 
 const BOARD_KEY = 'ca2026:destination-guides';
+const DESTINATIONS_KEY = 'ca2026:destination-catalog';
 const RATE_LIMIT = 30;
 const RATE_WINDOW_SECONDS = 3600;
-const DESTINATION_IDS = ['gothenburg', 'gdansk', 'oslo', 'helsinki', 'stockholm', 'others'];
+const DEFAULT_DESTINATIONS = [
+  { id: 'gothenburg', name: 'Gothenburg', country: 'Sweden', photoUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/Karlatornet_along_with_Gothenburg_skyline..jpg/960px-Karlatornet_along_with_Gothenburg_skyline..jpg', photoCreditLabel: 'Axadem · CC BY-SA 4.0', photoCreditUrl: 'https://commons.wikimedia.org/wiki/File:Karlatornet_along_with_Gothenburg_skyline..jpg' },
+  { id: 'gdansk', name: 'Gdansk', country: 'Poland', photoUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/21/Gdansk_Gora_Gradowa_2.jpg/960px-Gdansk_Gora_Gradowa_2.jpg', photoCreditLabel: 'Andrzej Otrębski · CC BY-SA 3.0', photoCreditUrl: 'https://commons.wikimedia.org/wiki/File:Gdansk_Gora_Gradowa_2.jpg' },
+  { id: 'oslo', name: 'Oslo', country: 'Norway', photoUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/Oslo_Skyline%2C_drone.jpg/960px-Oslo_Skyline%2C_drone.jpg', photoCreditLabel: 'Sunderland Renaissance · CC BY-SA 4.0', photoCreditUrl: 'https://commons.wikimedia.org/wiki/File:Oslo_Skyline,_drone.jpg' },
+  { id: 'helsinki', name: 'Helsinki', country: 'Finland', photoUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/Helsinki_Cathedral_2019.jpg/960px-Helsinki_Cathedral_2019.jpg', photoCreditLabel: 'Farzad Abedi · CC BY-SA 4.0', photoCreditUrl: 'https://commons.wikimedia.org/wiki/File:Helsinki_Cathedral_2019.jpg' },
+  { id: 'stockholm', name: 'Stockholm', country: 'Sweden', photoUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/14/Stockholm_city_skyline_and_waterfront_at_night_%28April_2016%29.jpg/960px-Stockholm_city_skyline_and_waterfront_at_night_%28April_2016%29.jpg', photoCreditLabel: 'Micael Widell · CC BY 3.0', photoCreditUrl: 'https://commons.wikimedia.org/wiki/File:Stockholm_city_skyline_and_waterfront_at_night_(April_2016).jpg' },
+  { id: 'others', name: 'Other', country: '', photoUrl: '', photoCreditLabel: '', photoCreditUrl: '', mapSearch: 'Europe' }
+];
+const DESTINATION_IDS = DEFAULT_DESTINATIONS.map(destination => destination.id);
 const GUIDE_CATEGORIES = ['eat', 'visit', 'shopping', 'tips'];
+const MAX_DESTINATIONS = 100;
+
+function isAdminPasswordValid(req) {
+  const supplied = req.headers['x-admin-password'];
+  if (typeof process.env.CA2026_ADMIN_PASSWORD !== 'string'
+    || process.env.CA2026_ADMIN_PASSWORD.length < 16
+    || typeof supplied !== 'string') return false;
+  const expectedHash = createHash('sha256').update(process.env.CA2026_ADMIN_PASSWORD).digest();
+  const suppliedHash = createHash('sha256').update(supplied).digest();
+  return timingSafeEqual(expectedHash, suppliedHash);
+}
 
 function setHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Password');
   res.setHeader('Cache-Control', 'no-store');
 }
 
@@ -126,13 +146,73 @@ function parseSavedGuides(value) {
   }
 }
 
+function parseDestinationCatalog(value) {
+  if (typeof value !== 'string') return [...DEFAULT_DESTINATIONS];
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [...DEFAULT_DESTINATIONS];
+    const destinations = parsed.filter(destination => destination
+      && typeof destination.id === 'string'
+      && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(destination.id)
+      && typeof destination.name === 'string'
+      && typeof destination.country === 'string');
+    const byId = new Map(destinations.map(destination => [destination.id, destination]));
+    return [
+      ...DEFAULT_DESTINATIONS.map(destination => byId.get(destination.id) || destination),
+      ...destinations.filter(destination => !DESTINATION_IDS.includes(destination.id))
+    ];
+  } catch {
+    return [...DEFAULT_DESTINATIONS];
+  }
+}
+
+function validateDestinationInput(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
+  const name = typeof input.name === 'string' ? input.name.trim() : '';
+  const country = typeof input.country === 'string' ? input.country.trim() : '';
+  const photoUrl = typeof input.photoUrl === 'string' ? input.photoUrl.trim() : '';
+  const photoCreditLabel = typeof input.photoCreditLabel === 'string' ? input.photoCreditLabel.trim() : '';
+  const photoCreditUrl = typeof input.photoCreditUrl === 'string' ? input.photoCreditUrl.trim() : '';
+  if (!name || name.length > 60 || country.length > 60 || photoCreditLabel.length > 120
+    || !isSafeUrl(photoUrl) || !isSafeUrl(photoCreditUrl)) return null;
+  return { name, country, photoUrl, photoCreditLabel, photoCreditUrl };
+}
+
+function destinationIdForName(name, existingIds) {
+  const base = name.normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'destination';
+  let id = base;
+  let suffix = 2;
+  while (existingIds.has(id)) id = `${base}-${suffix++}`;
+  return id;
+}
+
+function emptyGuide(destination) {
+  return {
+    name: destination.name,
+    country: destination.country,
+    hotels: [1, 2].map(index => ({
+      name: `Hotel ${index}`,
+      location: '',
+      lists: Object.fromEntries(GUIDE_CATEGORIES.map(category => [category, []]))
+    })),
+    photoUrl: destination.photoUrl,
+    photoCreditLabel: destination.photoCreditLabel,
+    photoCreditUrl: destination.photoCreditUrl,
+    mapsUrl: ''
+  };
+}
+
 module.exports = async function handler(req, res) {
   setHeaders(res);
   if (req.method === 'OPTIONS') return res.status(204).end();
 
   try {
     if (req.method === 'GET') {
-      const keys = [BOARD_KEY, ...DESTINATION_IDS.map(id => `${BOARD_KEY}:${id}`)];
+      const catalogValue = await redisCommand('GET', DESTINATIONS_KEY);
+      const destinations = parseDestinationCatalog(catalogValue);
+      const extraIds = destinations.map(destination => destination.id).filter(id => !DESTINATION_IDS.includes(id));
+      const keys = [BOARD_KEY, ...DESTINATION_IDS.map(id => `${BOARD_KEY}:${id}`), ...extraIds.map(id => `${BOARD_KEY}:${id}`)];
       const values = await redisCommand('MGET', ...keys);
       const guides = parseSavedGuides(values[0]);
       DESTINATION_IDS.forEach((id, index) => {
@@ -140,12 +220,92 @@ module.exports = async function handler(req, res) {
         try { guides[id] = JSON.parse(values[index + 1]); }
         catch { delete guides[id]; }
       });
-      return res.status(200).json({ guides });
+      extraIds.forEach((id, index) => {
+        const value = values[DESTINATION_IDS.length + 1 + index];
+        if (typeof value !== 'string') return;
+        try { guides[id] = JSON.parse(value); }
+        catch { delete guides[id]; }
+      });
+      return res.status(200).json({ guides, destinations });
     }
 
     if (req.method === 'POST') {
-      if (!await rateLimit(req)) return sendError(res, 429, 'Too many board edits. Please try again later.');
       const body = parseBody(req);
+      if (body?.adminAction === 'verify') {
+        if (!await rateLimit(req)) return sendError(res, 429, 'Too many admin attempts. Please try again later.');
+        if (typeof process.env.CA2026_ADMIN_PASSWORD !== 'string'
+          || process.env.CA2026_ADMIN_PASSWORD.length < 16) {
+          return sendError(res, 503, 'Destination admin access is not configured.');
+        }
+        if (!isAdminPasswordValid(req)) return sendError(res, 401, 'Admin password is incorrect.');
+        return res.status(200).json({ authorized: true });
+      }
+      if (body?.adminAction === 'createDestination' || body?.adminAction === 'renameDestination') {
+        if (typeof process.env.CA2026_ADMIN_PASSWORD !== 'string'
+          || process.env.CA2026_ADMIN_PASSWORD.length < 16) {
+          return sendError(res, 503, 'Destination admin access is not configured.');
+        }
+        if (!isAdminPasswordValid(req)) return sendError(res, 401, 'Admin password is incorrect.');
+        if (!await rateLimit(req)) return sendError(res, 429, 'Too many board edits. Please try again later.');
+
+        const catalogValue = await redisCommand('GET', DESTINATIONS_KEY);
+        const destinations = parseDestinationCatalog(catalogValue);
+        if (body.adminAction === 'createDestination') {
+          const input = validateDestinationInput(body.destination);
+          if (!input) return sendError(res, 400, 'Enter a valid destination name and optional details.');
+          if (destinations.length >= MAX_DESTINATIONS) return sendError(res, 400, 'The destination limit has been reached.');
+          const id = destinationIdForName(input.name, new Set(destinations.map(destination => destination.id)));
+          const destination = { id, ...input, mapSearch: '' };
+          const guide = emptyGuide(destination);
+          const script = [
+            "local raw = redis.call('GET', KEYS[1])",
+            "local destinations = raw and cjson.decode(raw) or cjson.decode(ARGV[1])",
+            "for _, item in ipairs(destinations) do if item.id == ARGV[2] then return 0 end end",
+            "if #destinations >= tonumber(ARGV[4]) then return -1 end",
+            "table.insert(destinations, cjson.decode(ARGV[3]))",
+            "redis.call('SET', KEYS[1], cjson.encode(destinations))",
+            "redis.call('SET', KEYS[2], ARGV[5])",
+            "return 1"
+          ].join('\n');
+          const result = await redisCommand('EVAL', script, '2', DESTINATIONS_KEY, `${BOARD_KEY}:${id}`,
+            JSON.stringify(DEFAULT_DESTINATIONS), id, JSON.stringify(destination), String(MAX_DESTINATIONS), JSON.stringify(guide));
+          if (result !== 1) return sendError(res, result === -1 ? 400 : 409, 'Could not add that destination. Refresh and try again.');
+          return res.status(201).json({ destination, guide });
+        }
+
+        const destinationId = body.destinationId;
+        const name = typeof body.name === 'string' ? body.name.trim() : '';
+        if (!destinations.some(destination => destination.id === destinationId)) {
+          return sendError(res, 400, 'Choose a valid destination.');
+        }
+        if (!name || name.length > 60) return sendError(res, 400, 'Enter a destination name of up to 60 characters.');
+        const guideValue = await redisCommand('GET', `${BOARD_KEY}:${destinationId}`);
+        const legacyValue = guideValue === null ? await redisCommand('GET', BOARD_KEY) : null;
+        const legacyGuides = parseSavedGuides(legacyValue);
+        const currentGuide = guideValue === null ? legacyGuides[destinationId] : (() => {
+          try { return JSON.parse(guideValue); } catch { return null; }
+        })();
+        const guide = validateGuide(currentGuide || emptyGuide(destinations.find(destination => destination.id === destinationId)));
+        if (!guide) return sendError(res, 500, 'The destination guide cannot be renamed because its saved data is invalid.');
+        guide.name = name;
+        const renamedDestination = { ...destinations.find(destination => destination.id === destinationId), name };
+        const script = [
+          "local raw = redis.call('GET', KEYS[1])",
+          "local destinations = raw and cjson.decode(raw) or cjson.decode(ARGV[1])",
+          "local found = false",
+          "for _, item in ipairs(destinations) do if item.id == ARGV[2] then item.name = ARGV[3]; found = true; break end end",
+          "if not found then return 0 end",
+          "redis.call('SET', KEYS[1], cjson.encode(destinations))",
+          "redis.call('SET', KEYS[2], ARGV[4])",
+          "return 1"
+        ].join('\n');
+        const result = await redisCommand('EVAL', script, '2', DESTINATIONS_KEY, `${BOARD_KEY}:${destinationId}`,
+          JSON.stringify(DEFAULT_DESTINATIONS), destinationId, name, JSON.stringify(guide));
+        if (result !== 1) return sendError(res, 409, 'Could not rename that destination. Refresh and try again.');
+        return res.status(200).json({ destination: renamedDestination, guide });
+      }
+
+      if (!await rateLimit(req)) return sendError(res, 429, 'Too many board edits. Please try again later.');
       if (!body || typeof body !== 'object' || !body.guides || typeof body.guides !== 'object') {
         return sendError(res, 400, 'A complete destination guide set is required.');
       }
@@ -161,11 +321,15 @@ module.exports = async function handler(req, res) {
     if (req.method === 'PUT') {
       if (!await rateLimit(req)) return sendError(res, 429, 'Too many board edits. Please try again later.');
       const body = parseBody(req);
-      if (!body || typeof body !== 'object' || !DESTINATION_IDS.includes(body.destinationId)) {
+      if (!body || typeof body !== 'object' || typeof body.destinationId !== 'string') {
         return sendError(res, 400, 'Choose a valid destination.');
       }
       const guide = validateGuide(body.guide);
       if (!guide) return sendError(res, 400, 'The destination guide is invalid.');
+      const catalogValue = await redisCommand('GET', DESTINATIONS_KEY);
+      const destination = parseDestinationCatalog(catalogValue).find(item => item.id === body.destinationId);
+      if (!destination) return sendError(res, 400, 'Choose a valid destination.');
+      guide.name = destination.name;
       await redisCommand('SET', `${BOARD_KEY}:${body.destinationId}`, JSON.stringify(guide));
       return res.status(200).json({ destinationId: body.destinationId, guide });
     }
