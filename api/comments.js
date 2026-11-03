@@ -215,11 +215,12 @@ module.exports = async function handler(req, res) {
       if (!await rateLimit(req)) return sendError(res, 429, 'Too many requests. Please try again later.');
       const body = parseBody(req);
       if (!body || typeof body !== 'object') return sendError(res, 400, 'Invalid request body.');
-      if (typeof body.id !== 'string') return sendError(res, 400, 'A post ID is required.');
+      if (typeof body.id !== 'string' || !/^[a-zA-Z0-9._:-]{1,80}$/.test(body.id)) {
+        return sendError(res, 400, 'A valid post ID is required.');
+      }
       const records = await readRecords();
       const target = records.find(({ record }) => record.id === body.id);
       if (!target) return sendError(res, 404, 'Post not found.');
-      if (!safeTokenMatch(target.record.ownerTokenHash, body.deleteToken) && !requireAdmin(req, res)) return;
       await redisCommand('LREM', COMMENTS_KEY, 1, target.raw);
       return res.status(204).end();
     }

@@ -307,10 +307,10 @@
     </section>
     <section class="session-board" aria-labelledby="sessionHeading">
       <h2 id="sessionHeading">Tips &amp; comments</h2>
-      <p class="session-intro">Share a tip or comment with the crew. Posts sync across devices and are visible to everyone with the trip link.</p>
+      <p class="session-intro">Share a tip or comment with the crew. Posts sync across devices and are visible to everyone with the trip link. Anyone can delete any post.</p>
       <details class="comment-admin" id="commentAdmin" open>
         <summary>Admin: edit or delete any comment</summary>
-        <p class="field-hint">Unlock to show edit and delete buttons on all comments, old and new. Authors can still delete their own posts.</p>
+        <p class="field-hint">Unlock to edit any comment. Delete buttons are available to everyone on all posts, old and new.</p>
         <form class="comment-admin-form" id="commentAdminForm">
           <div class="field"><label for="commentAdminPassword">Admin password</label><input id="commentAdminPassword" name="password" type="password" required autocomplete="current-password"></div>
           <button class="button button-outline" id="commentAdminSubmit" type="submit">Unlock admin controls</button>
@@ -789,17 +789,12 @@
       }
     }
     async function deleteSharedSessionPost(post) {
-      const deleteToken = sessionPostTokens[post.id];
-      const useAdmin = !deleteToken && Boolean(commentAdminPassword);
-      if (!deleteToken && !useAdmin) return;
+      if (!window.confirm(`Delete this ${post.type} by ${post.author}? It will be removed for everyone.`)) return;
       try {
         const response = await fetch(sessionPostsApiUrl, {
           method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(useAdmin ? { 'X-Admin-Password': commentAdminPassword } : {})
-          },
-          body: JSON.stringify({ id: post.id, ...(deleteToken ? { deleteToken } : {}) })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: post.id })
         });
         if (!response.ok) {
           const result = await response.json().catch(() => null);
@@ -870,30 +865,28 @@
         const createdAt = new Date(post.createdAt);
         time.textContent = Number.isNaN(createdAt.getTime()) ? '' : createdAt.toLocaleString();
         header.append(author, type, context, time);
-        if (sessionPostTokens[post.id] || commentAdminPassword) {
-          const actions = document.createElement('div');
-          actions.className = 'session-post-actions';
-          if (commentAdminPassword) {
-            const editButton = document.createElement('button');
-            editButton.type = 'button';
-            editButton.className = 'button button-outline session-post-edit';
-            editButton.textContent = 'Edit';
-            editButton.setAttribute('aria-label', `Edit comment by ${post.author}`);
-            editButton.addEventListener('click', () => {
-              editingAdminCommentId = editingAdminCommentId === post.id ? null : post.id;
-              renderSessionPosts();
-            });
-            actions.append(editButton);
-          }
-          const deleteButton = document.createElement('button');
-          deleteButton.type = 'button';
-          deleteButton.className = 'delete-button session-post-delete';
-          deleteButton.textContent = 'Delete';
-          deleteButton.setAttribute('aria-label', `Delete ${post.type} by ${post.author}`);
-          deleteButton.addEventListener('click', () => deleteSharedSessionPost(post));
-          actions.append(deleteButton);
-          header.append(actions);
+        const actions = document.createElement('div');
+        actions.className = 'session-post-actions';
+        if (commentAdminPassword) {
+          const editButton = document.createElement('button');
+          editButton.type = 'button';
+          editButton.className = 'button button-outline session-post-edit';
+          editButton.textContent = 'Edit';
+          editButton.setAttribute('aria-label', `Edit comment by ${post.author}`);
+          editButton.addEventListener('click', () => {
+            editingAdminCommentId = editingAdminCommentId === post.id ? null : post.id;
+            renderSessionPosts();
+          });
+          actions.append(editButton);
         }
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'delete-button session-post-delete';
+        deleteButton.textContent = 'Delete';
+        deleteButton.setAttribute('aria-label', `Delete ${post.type} by ${post.author}`);
+        deleteButton.addEventListener('click', () => deleteSharedSessionPost(post));
+        actions.append(deleteButton);
+        header.append(actions);
         const text = document.createElement('p');
         text.className = 'session-post-text';
         text.textContent = post.text;
