@@ -93,6 +93,7 @@
     .guide-category summary { padding: 13px 15px; cursor: pointer; color: var(--green); font: 600 18px var(--serif); }
     .guide-category ul { margin: 0; padding: 0 18px 15px 37px; color: var(--muted); line-height: 1.7; }
     .guide-category li + li { margin-top: 5px; }
+    .guide-category li a { color: var(--green); text-decoration: underline; word-break: break-word; }
     .guide-empty { color: var(--muted); }
     .hotel-parts { display: grid; gap: 14px; }
     .hotel-part { padding: 15px; border: 1px solid var(--line); border-radius: 6px; background: rgba(255,254,250,.55); }
@@ -1218,12 +1219,39 @@
     function renderDestinationGuide() {
       const guide = activeGuide();
       document.getElementById('guideTitle').textContent = [activeDestinationName(), activeDestinationCountry()].filter(Boolean).join(', ');
-      const renderList = (elementId, items, placeholder) => {
+      const appendLink = (parent, label, href) => {
+        const link = document.createElement('a');
+        link.href = href;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = label;
+        parent.append(link);
+      };
+      // Visit items: [text](url) and bare http(s) links become anchors; items without a link get a Google Maps search link.
+      const appendVisitItem = (item, text) => {
+        const pattern = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s<>"]+)/g;
+        let last = 0, hasLink = false, match;
+        while ((match = pattern.exec(text))) {
+          const href = normalizeWebUrl(match[2] || match[3]);
+          if (!href) continue;
+          item.append(text.slice(last, match.index));
+          appendLink(item, match[1] || (isValidHotelLocation(href) ? '📍 Map' : href), href);
+          last = match.index + match[0].length;
+          hasLink = true;
+        }
+        item.append(text.slice(last));
+        if (!hasLink) {
+          item.append(' ');
+          appendLink(item, '📍', 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([text, activeDestinationName(), activeDestinationCountry()].filter(Boolean).join(', ')));
+        }
+      };
+      const renderList = (elementId, items, placeholder, isVisit) => {
         const list = document.getElementById(elementId);
         list.replaceChildren();
         (items.length ? items : [placeholder]).forEach(text => {
           const item = document.createElement('li');
-          item.textContent = text;
+          if (isVisit && items.length) appendVisitItem(item, text);
+          else item.textContent = text;
           if (!items.length) item.className = 'guide-empty';
           list.append(item);
         });
@@ -1267,7 +1295,7 @@
       guide.hotels.forEach((hotel, index) => {
         const hotelNumber = index + 1;
         for (const category of categories) {
-          renderList(`hotel${hotelNumber}-${category.id}`, hotel.lists[category.id], category.placeholder);
+          renderList(`hotel${hotelNumber}-${category.id}`, hotel.lists[category.id], category.placeholder, category.id === 'visit');
           const input = document.querySelector(`.hotel-guide-form[data-hotel-index="${index}"] [name="${category.id}"]`);
           input.value = hotel.lists[category.id].join('\n');
         }
@@ -1301,8 +1329,8 @@
           category,
           data[category].split(/\r?\n/).map(item => item.trim()).filter(Boolean).slice(0, 20)
         ]));
-        if (Object.values(lists).some(items => items.some(item => item.length > 200))) {
-          showToast('Each hotel recommendation must be 200 characters or fewer.');
+        if (Object.entries(lists).some(([name, items]) => items.some(item => item.length > (name === 'visit' ? 500 : 200)))) {
+          showToast('Each recommendation must be 200 characters or fewer (500 for Visit).');
           return null;
         }
         return {
