@@ -120,7 +120,7 @@ function validateGuide(input) {
     for (const category of GUIDE_CATEGORIES) {
       const items = hotel.lists[category];
       if (!Array.isArray(items) || items.length > 20
-        || items.some(item => typeof item !== 'string' || item.trim().length > 500)) return null;
+        || items.some(item => typeof item !== 'string' || item.trim().length > 2000)) return null;
       lists[category] = items.map(item => item.trim()).filter(Boolean);
     }
     hotels.push({ name: hotelName, location, lists });

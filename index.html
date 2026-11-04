@@ -1274,7 +1274,7 @@
             <ul id="hotel${hotelNumber}-${category.id}"></ul>
           </details>`).join('');
         const fieldsHtml = categories.map(category => `
-          <div class="field"><label for="hotel${hotelNumber}-${category.id}-input">${category.label}</label><textarea id="hotel${hotelNumber}-${category.id}-input" name="${category.id}" maxlength="10000" placeholder="Add one recommendation per line"></textarea></div>`).join('');
+          <div class="field"><label for="hotel${hotelNumber}-${category.id}-input">${category.label}</label><textarea id="hotel${hotelNumber}-${category.id}-input" name="${category.id}" maxlength="40000" placeholder="Add one recommendation per line"></textarea></div>`).join('');
         return `
           <details class="hotel-part" ${index === 0 ? 'open' : ''}>
             <summary>${safeText(hotelName)}</summary>
@@ -1329,8 +1329,8 @@
           category,
           data[category].split(/\r?\n/).map(item => item.trim()).filter(Boolean).slice(0, 20)
         ]));
-        if (Object.values(lists).some(items => items.some(item => item.length > 500))) {
-          showToast('Each recommendation must be 500 characters or fewer.');
+        if (Object.values(lists).some(items => items.some(item =>         item.length > 2000))) {
+                  showToast('Each recommendation must be 2000 characters or fewer.');
           return null;
         }
         return {
