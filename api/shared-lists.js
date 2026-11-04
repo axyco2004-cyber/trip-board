@@ -68,7 +68,7 @@ function validatePlaces(input) {
     const map = typeof place.map === 'string' ? place.map.trim() : '';
     const by = typeof place.by === 'string' ? place.by.trim() : '';
     if (!/^[a-zA-Z0-9._:-]{1,80}$/.test(id) || !name || name.length > 80
-      || !PLACE_CATEGORIES.has(category) || area.length > 60 || note.length > 180 || by.length > 30) return null;
+      || !PLACE_CATEGORIES.has(category) || area.length > 60 || note.length > 500 || by.length > 30) return null;
     if (map) {
       try {
         const url = new URL(map);
