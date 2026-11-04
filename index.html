@@ -1227,30 +1227,30 @@
         link.textContent = label;
         parent.append(link);
       };
-      // Visit items: [text](url) and bare http(s) links become anchors; items without a link get a Google Maps search link.
-      const appendVisitItem = (item, text) => {
+      // [text](url) and bare http(s) links become anchors (bare links show as a 📍 pin); items without a link get a Google Maps search pin, except Tips.
+      const appendRichItem = (item, text, autoPin) => {
         const pattern = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s<>"]+)/g;
         let last = 0, hasLink = false, match;
         while ((match = pattern.exec(text))) {
           const href = normalizeWebUrl(match[2] || match[3]);
           if (!href) continue;
           item.append(text.slice(last, match.index));
-          appendLink(item, match[1] || (isValidHotelLocation(href) ? '📍 Map' : href), href);
+          appendLink(item, match[1] ? `📍 ${match[1]}` : '📍', href);
           last = match.index + match[0].length;
           hasLink = true;
         }
         item.append(text.slice(last));
-        if (!hasLink) {
+        if (!hasLink && autoPin) {
           item.append(' ');
           appendLink(item, '📍', 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([text, activeDestinationName(), activeDestinationCountry()].filter(Boolean).join(', ')));
         }
       };
-      const renderList = (elementId, items, placeholder, isVisit) => {
+      const renderList = (elementId, items, placeholder, autoPin) => {
         const list = document.getElementById(elementId);
         list.replaceChildren();
         (items.length ? items : [placeholder]).forEach(text => {
           const item = document.createElement('li');
-          if (isVisit && items.length) appendVisitItem(item, text);
+          if (items.length) appendRichItem(item, text, autoPin);
           else item.textContent = text;
           if (!items.length) item.className = 'guide-empty';
           list.append(item);
@@ -1295,7 +1295,7 @@
       guide.hotels.forEach((hotel, index) => {
         const hotelNumber = index + 1;
         for (const category of categories) {
-          renderList(`hotel${hotelNumber}-${category.id}`, hotel.lists[category.id], category.placeholder, category.id === 'visit');
+          renderList(`hotel${hotelNumber}-${category.id}`, hotel.lists[category.id], category.placeholder, category.id !== 'tips');
           const input = document.querySelector(`.hotel-guide-form[data-hotel-index="${index}"] [name="${category.id}"]`);
           input.value = hotel.lists[category.id].join('\n');
         }
